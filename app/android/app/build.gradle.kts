@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.gostudy.go_study"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973" // matches engine/android/build.sh
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -27,6 +27,19 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // KataGo runs as an executable shipped in jniLibs (libkatago.so), so the
+    // native libraries must be extracted to disk at install time.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
+    // Engine networks are already gzip-compressed.
+    androidResources {
+        noCompress += listOf("asset")
     }
 
     buildTypes {

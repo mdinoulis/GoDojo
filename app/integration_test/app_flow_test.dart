@@ -16,8 +16,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 final _root = GlobalKey();
 
 Future<void> shot(WidgetTester t, String name) async {
-  final dir = Platform.environment['GOSTUDY_SHOTS'];
+  final dir = Platform.isAndroid
+      ? '/data/data/com.gostudy.go_study/cache/shots'
+      : Platform.environment['GOSTUDY_SHOTS'];
   if (dir == null) return;
+  Directory(dir).createSync(recursive: true);
   await t.pump();
   await t.runAsync(() async {
     final b = _root.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -66,8 +69,10 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('play a 9x9 game against KataGo using every tool', (t) async {
-    t.view.physicalSize = const Size(1400, 900);
-    t.view.devicePixelRatio = 1;
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      t.view.physicalSize = const Size(1400, 900);
+      t.view.devicePixelRatio = 1;
+    }
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     await t.pumpWidget(RepaintBoundary(
@@ -136,8 +141,10 @@ void main() {
 
 
   testWidgets('over-the-board game is counted correctly at the end', (t) async {
-    t.view.physicalSize = const Size(1400, 900);
-    t.view.devicePixelRatio = 1;
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      t.view.physicalSize = const Size(1400, 900);
+      t.view.devicePixelRatio = 1;
+    }
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     await t.pumpWidget(RepaintBoundary(
@@ -171,5 +178,49 @@ void main() {
     await tapButton(t, 'Accept result');
     await t.pump();
     expect(hasText('White wins by 15.5 points'), isTrue);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
+  testWidgets('post-game review: summary, key moments and best line', (t) async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      t.view.physicalSize = const Size(1400, 1000);
+      t.view.devicePixelRatio = 1;
+    }
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    await t.pumpWidget(RepaintBoundary(
+      key: _root,
+      child: ProviderScope(
+        overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+        child: const GoStudyApp(),
+      ),
+    ));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Over-the-board game (2 players)'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('9×9'));
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.text('Start game'));
+    await t.tap(find.text('Start game'));
+    await t.pumpAndSettle();
+
+    // A short game with some deliberately poor first-line moves.
+    for (final (x, y) in [(4, 4), (2, 2), (6, 2), (0, 0), (2, 6), (8, 8),
+                          (6, 6), (2, 4), (3, 3), (1, 1), (4, 6), (8, 0)]) {
+      await tapPoint(t, x, y, 9);
+    }
+    await t.tap(find.byTooltip('Review game'));
+    await t.pumpAndSettle(const Duration(milliseconds: 200));
+    await waitFor(t, () => hasText('Summary'));
+    await shot(t, '09_review_summary');
+    expect(hasText('Accuracy'), isTrue);
+    expect(hasText('Blunders'), isTrue);
+
+    await t.tap(find.byTooltip('Next key moment'));
+    await t.pump();
+    await t.ensureVisible(find.text('Show the best line'));
+    await t.tap(find.text('Show the best line'));
+    await t.pump();
+    await shot(t, '10_review_best_line');
+    expect(hasText('Show the game move'), isTrue);
   }, timeout: const Timeout(Duration(minutes: 3)));
 }

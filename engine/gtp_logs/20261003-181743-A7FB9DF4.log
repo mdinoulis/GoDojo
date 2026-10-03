@@ -1,0 +1,35 @@
+2026-10-03 18:17:43+0100: Running with following config:
+allowResignation = true
+lagBuffer = 1.0
+logAllGTPCommunication = true
+logDir = gtp_logs
+logSearchInfo = true
+logSearchInfoForChosenMove = false
+logToStderr = false
+maxTimePondering = 60.0
+maxVisits = 500
+numSearchThreads = 6
+ponderingEnabled = false
+resignConsecTurns = 3
+resignThreshold = -0.90
+rules = tromp-taylor
+searchFactorAfterOnePass = 0.50
+searchFactorAfterTwoPass = 0.25
+searchFactorWhenWinning = 0.40
+searchFactorWhenWinningThreshold = 0.95
+
+2026-10-03 18:17:43+0100: Loading model and initializing benchmark...
+2026-10-03 18:17:43+0100: Testing with default positions for board size: 19
+2026-10-03 18:17:43+0100: nnRandSeed0 = 7314791946571806135
+2026-10-03 18:17:43+0100: After dedups: nnModelFile0 = models/kata1-b15c192-s1672170752-d466197061.txt.gz useFP16 auto
+2026-10-03 18:17:43+0100: Initializing neural net buffer to be size 19 * 19 exactly
+2026-10-03 18:17:45+0100: Eigen (CPU) backend thread 0: Model version 8
+2026-10-03 18:17:45+0100: Eigen (CPU) backend thread 1: Model version 8
+2026-10-03 18:17:45+0100: Eigen (CPU) backend thread 0: Model name: b15c192-s1672170752-d466197061 (convnet, 9930951 params)
+2026-10-03 18:17:45+0100: Eigen (CPU) backend thread 1: Model name: b15c192-s1672170752-d466197061 (convnet, 9930951 params)
+2026-10-03 18:17:46+0100: Loaded config windows-cpu/default_gtp.cfg
+2026-10-03 18:17:46+0100: Loaded model models/kata1-b15c192-s1672170752-d466197061.txt.gz
+2026-10-03 18:18:12+0100: GPU -1 finishing, processed 482 rows 453 batches
+2026-10-03 18:18:12+0100: GPU -1 finishing, processed 480 rows 461 batches
+2026-10-03 18:18:12+0100: GPU -1 finishing, processed 479 rows 465 batches
+2026-10-03 18:18:12+0100: GPU -1 finishing, processed 475 rows 458 batches

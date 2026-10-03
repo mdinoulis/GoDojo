@@ -12,6 +12,7 @@ import '../engine_service.dart';
 import '../game_controller.dart';
 import '../settings.dart';
 import 'quality.dart';
+import 'review_screen.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   final GameSetup setup;
@@ -88,6 +89,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           appBar: AppBar(
             title: Text(_title()),
             actions: [
+              IconButton(
+                tooltip: 'Review game',
+                icon: const Icon(Icons.query_stats),
+                onPressed: c.game.moveNumber >= 2 && !c.botThinking ? _review : null,
+              ),
               IconButton(
                 tooltip: 'Save SGF',
                 icon: const Icon(Icons.save_alt),
@@ -555,8 +561,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               OutlinedButton(onPressed: c.resumePlay, child: const Text('Resume play')),
             ])
           else
-            OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(), child: const Text('Back to menu')),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              FilledButton.icon(
+                  onPressed: _review,
+                  icon: const Icon(Icons.query_stats),
+                  label: const Text('Review game')),
+              OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(), child: const Text('Back to menu')),
+            ]),
         ]),
       ),
     );
@@ -566,6 +578,24 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final m = r.margin;
     if (m == 0) return 'Jigo (draw)';
     return '${m > 0 ? 'Black' : 'White'} wins by ${m.abs().toStringAsFixed(1)}';
+  }
+
+  void _review() {
+    final names = _names();
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ReviewScreen(
+        game: c.game.copy(),
+        player: c.isVsBot ? c.humanColour : null,
+        blackName: names.$1,
+        whiteName: names.$2,
+      ),
+    ));
+  }
+
+  (String, String) _names() {
+    if (!c.isVsBot) return ('Black', 'White');
+    final bot = 'KataGo ${c.level.label}';
+    return c.humanColour == Stone.black ? ('You', bot) : (bot, 'You');
   }
 
   Future<void> _confirmResign() async {
@@ -592,11 +622,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       String two(int v) => v.toString().padLeft(2, '0');
       final name = 'game-${now.year}${two(now.month)}${two(now.day)}-${two(now.hour)}${two(now.minute)}${two(now.second)}.sgf';
       final file = File('${folder.path}${Platform.pathSeparator}$name');
-      final human = c.isVsBot ? 'You' : 'Black';
+      final names = _names();
       await file.writeAsString(Sgf.export(
         c.game,
-        blackName: c.isVsBot ? (c.humanColour == Stone.black ? human : 'KataGo ${c.level.label}') : 'Black',
-        whiteName: c.isVsBot ? (c.humanColour == Stone.white ? human : 'KataGo ${c.level.label}') : 'White',
+        blackName: names.$1,
+        whiteName: names.$2,
         date: now,
         app: 'GoStudy',
       ));

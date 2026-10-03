@@ -5,6 +5,7 @@ import 'package:go_core/go_core.dart';
 import '../board/board_view.dart';
 import '../settings.dart';
 import 'new_game_screen.dart';
+import 'saved_games_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -41,11 +42,14 @@ class HomeScreen extends ConsumerWidget {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    height: 240,
-                    child: BoardView(
-                        board: preview,
-                        settings: settings.copyWith(showCoordinates: false)),
+                  Center(
+                    child: SizedBox(
+                      width: 240,
+                      height: 240,
+                      child: BoardView(
+                          board: preview,
+                          settings: settings.copyWith(showCoordinates: false)),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
@@ -58,6 +62,13 @@ class HomeScreen extends ConsumerWidget {
                     icon: const Icon(Icons.people_outline),
                     label: const Text('Over-the-board game (2 players)'),
                     onPressed: () => _newGame(context, GameMode.otb),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.folder_open_outlined),
+                    label: const Text('Saved games & review'),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const SavedGamesScreen())),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(

@@ -19,8 +19,11 @@ class ClassifierThresholds {
   final double good; // max point loss for "good"
   final double poor; // max point loss for "poor"
   final double mistake; // max point loss for "mistake"
-  final double mistakeWinrate; // winrate loss that makes it at least a mistake
-  final double blunderWinrate; // winrate loss that makes it a blunder
+  /// Winrate losses that escalate a move one category (only when it also
+  /// loses a meaningful number of points, so sharp 9x9 positions where a
+  /// single point swings the winrate aren't all "blunders").
+  final double mistakeWinrate;
+  final double blunderWinrate;
   final double bestTolerance; // loss still considered "the best move"
   final double greatMargin; // how much worse the alternatives must be
   final double tesujiMaxPrior; // "hard to find" - low policy prior
@@ -140,9 +143,11 @@ class MoveClassifier {
       } else {
         q = MoveQuality.good;
       }
-    } else if (wrLoss >= t.blunderWinrate || loss > t.mistake) {
+    } else if (loss > t.mistake ||
+        (wrLoss >= t.blunderWinrate && loss > t.poor)) {
       q = MoveQuality.blunder;
-    } else if (wrLoss >= t.mistakeWinrate || loss > t.poor) {
+    } else if (loss > t.poor ||
+        (wrLoss >= t.mistakeWinrate && loss > (t.good + t.poor) / 2)) {
       q = MoveQuality.mistake;
     } else if (loss > t.good) {
       q = MoveQuality.poor;

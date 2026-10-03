@@ -12,9 +12,10 @@ class CandidateMark {
   final String label;
   final String? subLabel;
   final Color color;
+  final Color textColor;
   final bool best;
   const CandidateMark(this.point, this.label, this.color,
-      {this.subLabel, this.best = false});
+      {this.subLabel, this.best = false, this.textColor = Colors.black});
 }
 
 /// Everything drawn on top of the stones.
@@ -408,9 +409,9 @@ class _ForegroundPainter extends CustomPainter {
               ..color = Colors.white);
       }
       if (m.subLabel == null) {
-        _label(canvas, c, m.label, Colors.black, r * 0.75);
+        _label(canvas, c, m.label, m.textColor, r * (m.label.length > 3 ? 0.55 : 0.75));
       } else {
-        _label(canvas, c - Offset(0, r * 0.25), m.label, Colors.black, r * 0.62);
+        _label(canvas, c - Offset(0, r * 0.25), m.label, m.textColor, r * 0.62);
         _label(canvas, c + Offset(0, r * 0.38), m.subLabel!,
             Colors.black.withValues(alpha: 0.75), r * 0.45);
       }
