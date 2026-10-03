@@ -111,6 +111,19 @@ class Game {
     _nodes.add(_Node(board, null, first, 0, 0, const []));
   }
 
+  /// An independent copy of the game (main line and redo moves).
+  Game copy() {
+    final g = Game(setup, handicapStones: handicapStones);
+    for (final m in moves) {
+      g.playMove(m);
+    }
+    for (final m in _redo) {
+      g._redo.add(m);
+    }
+    g._result = _result;
+    return g;
+  }
+
   int get size => setup.size;
   Ruleset get rules => setup.rules;
   Board get board => _nodes.last.board;

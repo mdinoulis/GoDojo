@@ -150,7 +150,13 @@ void main() {
       . . . X . O . . .''';
     final r = scoreDiagram(d, Ruleset.japanese);
     expect(r.isFinished, isFalse);
-    expect(r.openGaps, isNotEmpty);
+    expect(r.unsettled, contains(const Point(3, 4)));
+  });
+
+  test('an empty or barely started board is unsettled', () {
+    final r = Scorer.score(board: Board(9), rules: Ruleset.japanese, komi: 6.5);
+    expect(r.isFinished, isFalse);
+    expect(r.unsettled.length, 81);
   });
 
   test('open border detected using ownership', () {

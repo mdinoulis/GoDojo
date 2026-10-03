@@ -53,11 +53,7 @@ class KataGoEngine implements GoEngine {
   static Future<EngineTransport> _processFactory(EngineConfig c) =>
       ProcessTransport.start(
         c.executable,
-        [
-          ...c.arguments,
-          // The app always works with values from Black's point of view.
-          '-override-config', 'reportAnalysisWinratesAs=BLACK',
-        ],
+        c.arguments,
         workingDirectory: c.workingDirectory,
       );
 

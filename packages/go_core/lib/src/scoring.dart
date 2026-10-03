@@ -34,6 +34,9 @@ class ScoreResult {
   /// (open borders, protective moves / teire, and dame under area scoring).
   final Set<Point> openGaps;
 
+  /// Points of large neutral areas that are still being contested.
+  final Set<Point> unsettled;
+
   const ScoreResult({
     required this.rules,
     required this.komi,
@@ -50,9 +53,10 @@ class ScoreResult {
     required this.sekiStones,
     required this.dame,
     required this.openGaps,
+    this.unsettled = const {},
   });
 
-  bool get isFinished => openGaps.isEmpty;
+  bool get isFinished => openGaps.isEmpty && unsettled.isEmpty;
 
   double get blackScore => rules.scoring == ScoringType.area
       ? (blackStones + blackTerritory).toDouble()
@@ -172,6 +176,7 @@ class Scorer {
     var bt = 0, wt = 0;
     final dame = <Point>{};
     final openGaps = <Point>{};
+    final unsettled = <Point>{};
     for (final r in regions) {
       if (r.borders.length == 1) {
         final owner = r.borders.first;
@@ -200,7 +205,13 @@ class Scorer {
           if (s == PointStatus.dame) dame.add(p);
         }
         if (r.borders.length == 2) {
-          openGaps.addAll(_openGapsIn(cleared, r, sekiPoints, ownership, rules));
+          if (_isUnsettled(r, ownership, size)) {
+            unsettled.addAll(r.points);
+          } else {
+            openGaps.addAll(_openGapsIn(cleared, r, sekiPoints, ownership, rules));
+          }
+        } else if (r.borders.isEmpty) {
+          unsettled.addAll(r.points); // empty board
         }
       }
     }
@@ -237,7 +248,18 @@ class Scorer {
       sekiStones: sekiStones,
       dame: dame,
       openGaps: openGaps,
+      unsettled: unsettled,
     );
+  }
+
+  /// A neutral region that is too big to be dame and is not simply one
+  /// side's territory with a gap in its wall.
+  static bool _isUnsettled(_Region r, List<double>? ownership, int size) {
+    if (r.points.length <= 3) return false;
+    if (ownership == null) return true;
+    final strong =
+        r.points.where((p) => ownership[p.index(size)].abs() > 0.6).length;
+    return strong < r.points.length * 0.5;
   }
 
   /// A neutral point where neither side can play without putting its own
@@ -288,7 +310,7 @@ class Scorer {
       final sum =
           r.points.map((p) => ownership[p.index(size)]).reduce((a, c) => a + c);
       final strong = r.points.where((p) => ownership[p.index(size)].abs() > 0.6);
-      if (strong.isNotEmpty && r.points.length > 1) {
+      if (strong.isNotEmpty) {
         final owner = sum >= 0 ? Stone.black : Stone.white;
         for (final p in r.points) {
           if (sekiPoints.contains(p)) continue;
@@ -297,13 +319,6 @@ class Scorer {
         }
         return;
       }
-    } else if (r.points.length > 3) {
-      // Without engine help, a large neutral area is almost certainly open.
-      for (final p in r.points) {
-        final cs = b.neighbors(p).map((n) => b[n]).whereType<Stone>().toSet();
-        if (cs.length == 2) yield p;
-      }
-      return;
     }
     // 2) Dame: always worth a point under area scoring; under territory
     //    scoring only when filling it forces a protective move (teire).

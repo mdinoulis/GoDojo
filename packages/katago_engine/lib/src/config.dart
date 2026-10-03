@@ -70,6 +70,8 @@ class EngineConfig {
         '-config', configFile,
         '-model', model,
         if (humanModel != null) ...['-human-model', humanModel!],
+        // The app always works with values from Black's point of view.
+        '-override-config', 'reportAnalysisWinratesAs=BLACK',
         ...extraArgs,
       ];
 

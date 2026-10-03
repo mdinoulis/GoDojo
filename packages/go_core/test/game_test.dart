@@ -149,6 +149,15 @@ void main() {
       expect(g.prisoners(Stone.black), 0);
     });
 
+    test('copy is independent', () {
+      final g = Game(const GameSetup(size: 9));
+      g.play(p(2, 2));
+      final c = g.copy()..pass();
+      expect(g.moveNumber, 1);
+      expect(c.moveNumber, 2);
+      expect(c.board, g.board);
+    });
+
     test('two passes end the game; undo resumes it', () {
       final g = Game(const GameSetup(size: 9));
       g.pass();
