@@ -1,0 +1,14 @@
+# Engine binaries & networks are downloaded, not committed
+engine/windows/
+engine/windows-cpu/
+engine/models/
+engine/logs/
+engine/**/KataGoData/
+engine/android/build/
+# Dart / Flutter
+.dart_tool/
+build/
+pubspec.lock
+.flutter-plugins*
+*.iml
+.idea/

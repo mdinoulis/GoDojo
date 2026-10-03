@@ -1,0 +1,10 @@
+name: go_core
+description: Engine-agnostic Go (baduk/weiqi) game logic - board, rules, game record, SGF, handicap, scoring and move classification.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+dev_dependencies:
+  test: ^1.25.0
