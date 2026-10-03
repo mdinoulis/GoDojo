@@ -1,0 +1,14 @@
+name: katago_engine
+description: Go engine API for the app - a GoEngine interface and a KataGo (JSON analysis engine) implementation with pluggable transports.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  go_core:
+    path: ../go_core
+
+dev_dependencies:
+  test: ^1.25.0
