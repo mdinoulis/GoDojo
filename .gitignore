@@ -3,6 +3,7 @@ engine/windows/
 engine/windows-cpu/
 engine/models/
 engine/logs/
+engine/gtp_logs/
 engine/**/KataGoData/
 engine/android/build/
 # Dart / Flutter
