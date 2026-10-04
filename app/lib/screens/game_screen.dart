@@ -49,6 +49,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       level: widget.level,
     );
     final sounds = ref.read(soundServiceProvider);
+    sounds.warmUp(ref.read(settingsProvider).stoneSound);
     c.onStonePlayed = (move, captured) {
       final s = ref.read(settingsProvider);
       if (s.soundEnabled) sounds.stonePlayed(captured, sound: s.stoneSound);
