@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_core/go_core.dart';
-import 'package:go_study/board/board_view.dart';
-import 'package:go_study/main.dart';
-import 'package:go_study/settings.dart';
+import 'package:godojo/board/board_view.dart';
+import 'package:godojo/main.dart';
+import 'package:godojo/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -13,7 +13,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(ProviderScope(
       overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
-      child: const GoStudyApp(),
+      child: const GoDojoApp(),
     ));
     expect(find.text('Play against KataGo'), findsOneWidget);
     expect(find.text('Over-the-board game (2 players)'), findsOneWidget);

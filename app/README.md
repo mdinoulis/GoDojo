@@ -1,4 +1,4 @@
-# go_study
+# godojo
 
 Go playing and learning app powered by KataGo
 

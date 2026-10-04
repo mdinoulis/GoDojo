@@ -1,5 +1,5 @@
 // End-to-end run of the desktop app against the real KataGo engine.
-// Saves screenshots to $GOSTUDY_SHOTS (if set).
+// Saves screenshots to $GODOJO_SHOTS (if set).
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -7,9 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_study/board/board_view.dart';
-import 'package:go_study/main.dart';
-import 'package:go_study/settings.dart';
+import 'package:godojo/board/board_view.dart';
+import 'package:godojo/main.dart';
+import 'package:godojo/settings.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,8 +17,8 @@ final _root = GlobalKey();
 
 Future<void> shot(WidgetTester t, String name) async {
   final dir = Platform.isAndroid
-      ? '/data/data/com.gostudy.go_study/cache/shots'
-      : Platform.environment['GOSTUDY_SHOTS'];
+      ? '/data/data/com.godojo.app/cache/shots'
+      : Platform.environment['GODOJO_SHOTS'];
   if (dir == null) return;
   Directory(dir).createSync(recursive: true);
   await t.pump();
@@ -79,7 +79,7 @@ void main() {
       key: _root,
       child: ProviderScope(
         overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
-        child: const GoStudyApp(),
+        child: const GoDojoApp(),
       ),
     ));
     await t.pumpAndSettle();
@@ -151,7 +151,7 @@ void main() {
       key: _root,
       child: ProviderScope(
         overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
-        child: const GoStudyApp(),
+        child: const GoDojoApp(),
       ),
     ));
     await t.pumpAndSettle();
@@ -191,7 +191,7 @@ void main() {
       key: _root,
       child: ProviderScope(
         overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
-        child: const GoStudyApp(),
+        child: const GoDojoApp(),
       ),
     ));
     await t.pumpAndSettle();

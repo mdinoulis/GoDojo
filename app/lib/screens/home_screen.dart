@@ -34,7 +34,7 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Go Study',
+                  Text('GoDojo',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.displaySmall),
                   const SizedBox(height: 4),

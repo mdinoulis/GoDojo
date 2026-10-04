@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_core/go_core.dart';
-import 'package:go_study/engine_service.dart';
-import 'package:go_study/game_controller.dart';
-import 'package:go_study/settings.dart';
+import 'package:godojo/engine_service.dart';
+import 'package:godojo/game_controller.dart';
+import 'package:godojo/settings.dart';
 import 'package:katago_engine/katago_engine.dart';
 
 void main() {

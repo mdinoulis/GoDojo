@@ -1,4 +1,4 @@
-# Go Study – play and learn Go with KataGo
+# GoDojo – play and learn Go with KataGo
 
 Flutter app (Windows desktop for development, Android, iOS) with KataGo running
 **on the device**. No server, no network calls.
@@ -29,4 +29,4 @@ Android SDK 36 + NDK 27.0.12077973.
 - `packages/go_core`: `dart test`
 - `packages/katago_engine`: `dart test` (uses the real engine if installed)
 - `app`: `flutter test` and `flutter test integration_test -d windows`
-  (full games against the real engine; set `GOSTUDY_SHOTS=<dir>` for screenshots)
+  (full games against the real engine; set `GODOJO_SHOTS=<dir>` for screenshots)

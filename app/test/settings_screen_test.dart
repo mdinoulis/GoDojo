@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_study/screens/settings_screen.dart';
-import 'package:go_study/settings.dart';
+import 'package:godojo/screens/settings_screen.dart';
+import 'package:godojo/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

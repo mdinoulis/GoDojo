@@ -25,10 +25,15 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
 
   Future<void> _load() async {
     final dir = await getApplicationDocumentsDirectory();
-    final folder = Directory('${dir.path}${Platform.pathSeparator}GoStudy');
-    final list = folder.existsSync()
-        ? folder.listSync().whereType<File>().where((f) => f.path.toLowerCase().endsWith('.sgf')).toList()
-        : <File>[];
+    // "GoStudy" is the folder used before the app was renamed to GoDojo.
+    final list = <File>[
+      for (final name in ['GoDojo', 'GoStudy'])
+        if (Directory('${dir.path}${Platform.pathSeparator}$name').existsSync())
+          ...Directory('${dir.path}${Platform.pathSeparator}$name')
+              .listSync()
+              .whereType<File>()
+              .where((f) => f.path.toLowerCase().endsWith('.sgf')),
+    ];
     list.sort((a, b) => b.path.compareTo(a.path));
     if (mounted) setState(() => files = list);
   }

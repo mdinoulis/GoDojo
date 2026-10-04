@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'engine_service.dart';
@@ -10,21 +12,22 @@ import 'settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _migrateWindowsSettings();
   final prefs = await SharedPreferences.getInstance();
   runApp(ProviderScope(
     overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
-    child: const GoStudyApp(),
+    child: const GoDojoApp(),
   ));
 }
 
-class GoStudyApp extends ConsumerStatefulWidget {
-  const GoStudyApp({super.key});
+class GoDojoApp extends ConsumerStatefulWidget {
+  const GoDojoApp({super.key});
 
   @override
-  ConsumerState<GoStudyApp> createState() => _GoStudyAppState();
+  ConsumerState<GoDojoApp> createState() => _GoDojoAppState();
 }
 
-class _GoStudyAppState extends ConsumerState<GoStudyApp> {
+class _GoDojoAppState extends ConsumerState<GoDojoApp> {
   late final AppLifecycleListener _lifecycle;
 
   @override
@@ -47,7 +50,7 @@ class _GoStudyAppState extends ConsumerState<GoStudyApp> {
   Widget build(BuildContext context) {
     const seed = Color(0xFF8D6E3F);
     return MaterialApp(
-      title: 'Go Study',
+      title: 'GoDojo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: seed),
@@ -59,5 +62,25 @@ class _GoStudyAppState extends ConsumerState<GoStudyApp> {
       ),
       home: const HomeScreen(),
     );
+  }
+}
+
+/// The app used to be called "Go Study"; on Windows its settings lived in
+/// %APPDATA%\com.gostudy\go_study. Copy them over once so they survive the
+/// rename to GoDojo.
+Future<void> _migrateWindowsSettings() async {
+  if (!Platform.isWindows) return;
+  try {
+    final appData = Platform.environment['APPDATA'];
+    if (appData == null) return;
+    final old = File('$appData/com.gostudy/go_study/shared_preferences.json');
+    final dir = await getApplicationSupportDirectory();
+    final current = File('${dir.path}/shared_preferences.json');
+    if (old.existsSync() && !current.existsSync()) {
+      await dir.create(recursive: true);
+      await old.copy(current.path);
+    }
+  } catch (_) {
+    // Not important enough to stop the app starting.
   }
 }

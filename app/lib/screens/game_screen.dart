@@ -623,7 +623,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Future<void> _saveSgf() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final folder = Directory('${dir.path}${Platform.pathSeparator}GoStudy');
+      final folder = Directory('${dir.path}${Platform.pathSeparator}GoDojo');
       await folder.create(recursive: true);
       final now = DateTime.now();
       String two(int v) => v.toString().padLeft(2, '0');
@@ -635,7 +635,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         blackName: names.$1,
         whiteName: names.$2,
         date: now,
-        app: 'GoStudy',
+        app: 'GoDojo',
       ));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved ${file.path}')));

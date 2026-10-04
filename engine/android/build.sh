@@ -6,8 +6,8 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 KATAGO_VERSION=1.18.1
 EIGEN_VERSION=3.4.0
-SDK="${GOSTUDY_ANDROID_SDK:-$LOCALAPPDATA/Android/Sdk}"
-NDK="${GOSTUDY_NDK:-$SDK/ndk/27.0.12077973}"
+SDK="${GODOJO_ANDROID_SDK:-$LOCALAPPDATA/Android/Sdk}"
+NDK="${GODOJO_NDK:-$SDK/ndk/27.0.12077973}"
 CMAKE_DIR="$SDK/cmake/3.22.1/bin"
 ABIS=("${@:-arm64-v8a x86_64}")
 ABIS=(${ABIS[@]})

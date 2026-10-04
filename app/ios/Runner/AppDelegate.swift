@@ -12,9 +12,9 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "GoStudyEngine") {
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "GoDojoEngine") {
       let channel = FlutterMethodChannel(
-        name: "gostudy/engine", binaryMessenger: registrar.messenger())
+        name: "godojo/engine", binaryMessenger: registrar.messenger())
       channel.setMethodCallHandler { call, result in
         switch call.method {
         case "installEngineFiles":

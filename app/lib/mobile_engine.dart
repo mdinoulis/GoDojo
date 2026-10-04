@@ -9,7 +9,7 @@ import 'ffi_transport.dart';
 /// as `libkatago.so`; iOS links KataGo into the app and runs it in-process.
 /// The networks are copied from the app package on first launch.
 class MobileEngine {
-  static const _channel = MethodChannel('gostudy/engine');
+  static const _channel = MethodChannel('godojo/engine');
 
   static bool get isSupported => Platform.isAndroid || Platform.isIOS;
 

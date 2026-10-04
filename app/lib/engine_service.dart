@@ -20,9 +20,9 @@ class EngineService extends ChangeNotifier {
   String? error;
 
   /// Searches upwards from the executable for the repo's `engine/` folder
-  /// (development builds on the PC), or uses $GOSTUDY_ENGINE_DIR.
+  /// (development builds on the PC), or uses $GODOJO_ENGINE_DIR.
   static String? detectDesktopEngineDir() {
-    final env = Platform.environment['GOSTUDY_ENGINE_DIR'];
+    final env = Platform.environment['GODOJO_ENGINE_DIR'];
     if (env != null && Directory(env).existsSync()) return env;
     var dir = File(Platform.resolvedExecutable).parent;
     for (var i = 0; i < 10; i++) {

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.gostudy" "\0"
-            VALUE "FileDescription", "go_study" "\0"
+            VALUE "CompanyName", "com.godojo" "\0"
+            VALUE "FileDescription", "GoDojo" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "go_study" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.gostudy. All rights reserved." "\0"
-            VALUE "OriginalFilename", "go_study.exe" "\0"
-            VALUE "ProductName", "go_study" "\0"
+            VALUE "InternalName", "godojo" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.godojo. All rights reserved." "\0"
+            VALUE "OriginalFilename", "godojo.exe" "\0"
+            VALUE "ProductName", "GoDojo" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_study/sound_service.dart';
+import 'package:godojo/sound_service.dart';
 
 class FakeBackend implements SoundBackend {
   final played = <String>[];

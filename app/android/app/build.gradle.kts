@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.gostudy.go_study"
+    namespace = "com.godojo.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973" // matches engine/android/build.sh
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.gostudy.go_study"
+        applicationId = "com.godojo.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
