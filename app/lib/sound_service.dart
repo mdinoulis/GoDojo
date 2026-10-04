@@ -8,35 +8,51 @@ abstract class SoundBackend {
   void dispose();
 }
 
-/// audioplayers implementation: one preloaded player per asset file, looked
-/// up by file name so a player can never be playing a different recording.
+/// audioplayers implementation. Each asset gets a small pool of preloaded
+/// players, looked up by file name (so a player can never be playing a
+/// different recording) and used in turn, so a sound that starts while the
+/// previous one is still playing never cuts it off.
 class AudioPlayersBackend implements SoundBackend {
-  final Map<String, Future<AudioPlayer>> _players = {};
+  static const voices = 3;
+  final Map<String, Future<List<AudioPlayer>>> _pools = {};
+  final Map<String, int> _next = {};
 
-  Future<AudioPlayer> _player(String asset) => _players[asset] ??= () async {
-        final p = AudioPlayer();
-        await p.setPlayerMode(PlayerMode.lowLatency);
-        await p.setReleaseMode(ReleaseMode.stop);
-        await p.setSource(AssetSource(asset));
-        return p;
+  Future<List<AudioPlayer>> _pool(String asset) => _pools[asset] ??= () async {
+        return [
+          for (var i = 0; i < voices; i++)
+            await () async {
+              final p = AudioPlayer();
+              await p.setPlayerMode(PlayerMode.lowLatency);
+              await p.setReleaseMode(ReleaseMode.stop);
+              await p.setSource(AssetSource(asset));
+              return p;
+            }(),
+        ];
       }();
 
   @override
-  Future<void> prepare(String asset) async => _player(asset);
+  Future<void> prepare(String asset) async => _pool(asset);
 
   @override
   Future<void> play(String asset) async {
-    final p = await _player(asset);
+    final pool = await _pool(asset);
+    final i = _next[asset] ?? 0;
+    _next[asset] = (i + 1) % pool.length;
+    final p = pool[i];
     await p.stop();
     await p.resume();
   }
 
   @override
   void dispose() {
-    for (final f in _players.values) {
-      f.then((p) => p.dispose()).ignore();
+    for (final f in _pools.values) {
+      f.then((pool) {
+        for (final p in pool) {
+          p.dispose();
+        }
+      }).ignore();
     }
-    _players.clear();
+    _pools.clear();
   }
 }
 

@@ -31,6 +31,10 @@ class GameController extends ChangeNotifier {
   final EngineService engines;
   final AppSettings Function() settings;
 
+  /// The bot never answers faster than this, so the player sees (and hears)
+  /// their own stone land before the reply.
+  final Duration botMinDelay;
+
   Game game;
   GameMode mode;
   Stone humanColour;
@@ -64,6 +68,7 @@ class GameController extends ChangeNotifier {
     required this.mode,
     required this.humanColour,
     required this.level,
+    this.botMinDelay = const Duration(milliseconds: 500),
   }) : game = Game(setup);
 
   bool get isVsBot => mode == GameMode.vsBot;
@@ -146,9 +151,12 @@ class GameController extends ChangeNotifier {
     botThinking = true;
     notifyListeners();
     final gen = _generation;
+    final started = Stopwatch()..start();
     try {
       final engine = await _engine();
       final m = await engine.genMove(game, level);
+      final wait = botMinDelay - started.elapsed;
+      if (wait > Duration.zero) await Future<void>.delayed(wait);
       if (gen != _generation || token != _botToken) return;
       if (_shouldResign(m.analysis)) {
         botThinking = false;
