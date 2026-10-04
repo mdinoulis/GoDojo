@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// one is picked at random each move. Failures are ignored - sound is never
 /// essential.
 class SoundService {
-  static const _stoneFiles = ['sounds/stone4.wav'];
+  static const _stoneFiles = ['sounds/stone1.wav'];
 
   final _stones = [for (final _ in _stoneFiles) AudioPlayer()];
   final _capture = AudioPlayer();

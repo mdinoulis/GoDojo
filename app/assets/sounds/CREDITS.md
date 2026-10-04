@@ -1,6 +1,6 @@
 # Sound credits
 
-`stone4.wav` and `capturing.wav` are from
+`stone1.wav` and `capturing.wav` are from
 [KaTrain](https://github.com/sanderland/katrain) (`katrain/sounds/`),
 used under the MIT License:
 
