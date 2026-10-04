@@ -44,6 +44,11 @@ class GameController extends ChangeNotifier {
   MoveReview? rating;
   ScoringState? scoring;
 
+  /// Called whenever a stone is placed (by anyone) with the number of
+  /// stones it captured - used for sound effects. Not called for passes,
+  /// undo or navigation.
+  void Function(Move move, int captured)? onStonePlayed;
+
   /// One-shot messages for the UI (snackbars).
   final _messages = StreamController<String>.broadcast();
   Stream<String> get messages => _messages.stream;
@@ -107,6 +112,7 @@ class GameController extends ChangeNotifier {
       return;
     }
     game.play(p);
+    onStonePlayed?.call(game.lastMove!, game.lastCaptured.length);
     _afterMove();
   }
 
@@ -153,7 +159,11 @@ class GameController extends ChangeNotifier {
       }
       botThinking = false;
       game.play(m.point);
-      if (m.isPass) _say('${level.label} passes');
+      if (m.isPass) {
+        _say('${level.label} passes');
+      } else {
+        onStonePlayed?.call(game.lastMove!, game.lastCaptured.length);
+      }
       _positionChanged();
       if (game.bothPassed) startScoring();
     } catch (e) {

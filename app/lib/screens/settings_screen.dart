@@ -93,6 +93,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             value: s.markLastMove,
             onChanged: (v) => _update((s) => s.copyWith(markLastMove: v)),
           ),
+          SwitchListTile(
+            title: const Text('Sound'),
+            subtitle: const Text('Stone placed and stones captured'),
+            secondary: Icon(s.soundEnabled ? Icons.volume_up : Icons.volume_off),
+            value: s.soundEnabled,
+            onChanged: (v) => _update((s) => s.copyWith(soundEnabled: v)),
+          ),
           const Divider(height: 32),
           Text('Engine (KataGo)', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),

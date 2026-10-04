@@ -51,6 +51,7 @@ class AppSettings {
   final bool showCoordinates;
   final bool showMoveNumbers;
   final bool markLastMove;
+  final bool soundEnabled;
 
   // New-game defaults
   final GameMode mode;
@@ -72,6 +73,7 @@ class AppSettings {
     this.showCoordinates = true,
     this.showMoveNumbers = false,
     this.markLastMove = true,
+    this.soundEnabled = true,
     this.mode = GameMode.vsBot,
     this.boardSize = 19,
     this.rules = Ruleset.japanese,
@@ -90,6 +92,7 @@ class AppSettings {
     bool? showCoordinates,
     bool? showMoveNumbers,
     bool? markLastMove,
+    bool? soundEnabled,
     GameMode? mode,
     int? boardSize,
     Ruleset? rules,
@@ -108,6 +111,7 @@ class AppSettings {
         showCoordinates: showCoordinates ?? this.showCoordinates,
         showMoveNumbers: showMoveNumbers ?? this.showMoveNumbers,
         markLastMove: markLastMove ?? this.markLastMove,
+        soundEnabled: soundEnabled ?? this.soundEnabled,
         mode: mode ?? this.mode,
         boardSize: boardSize ?? this.boardSize,
         rules: rules ?? this.rules,
@@ -127,6 +131,7 @@ class AppSettings {
         'showCoordinates': showCoordinates,
         'showMoveNumbers': showMoveNumbers,
         'markLastMove': markLastMove,
+        'soundEnabled': soundEnabled,
         'mode': mode.name,
         'boardSize': boardSize,
         'rules': rules.name,
@@ -150,6 +155,7 @@ class AppSettings {
       showCoordinates: j['showCoordinates'] as bool? ?? d.showCoordinates,
       showMoveNumbers: j['showMoveNumbers'] as bool? ?? d.showMoveNumbers,
       markLastMove: j['markLastMove'] as bool? ?? d.markLastMove,
+      soundEnabled: j['soundEnabled'] as bool? ?? d.soundEnabled,
       mode: _enum(GameMode.values, j['mode'], d.mode),
       boardSize: j['boardSize'] as int? ?? d.boardSize,
       rules: _enum(Ruleset.values, j['rules'], d.rules),

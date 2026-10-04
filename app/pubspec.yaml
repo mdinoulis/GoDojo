@@ -42,6 +42,7 @@ dependencies:
   katago_engine:
     path: ../packages/katago_engine
   ffi: ^2.2.0
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +67,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/sounds/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -11,6 +11,7 @@ import '../board/board_view.dart';
 import '../engine_service.dart';
 import '../game_controller.dart';
 import '../settings.dart';
+import '../sound_service.dart';
 import 'quality.dart';
 import 'review_screen.dart';
 
@@ -47,6 +48,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       humanColour: widget.humanColour,
       level: widget.level,
     );
+    final sounds = ref.read(soundServiceProvider);
+    c.onStonePlayed = (move, captured) {
+      if (ref.read(settingsProvider).soundEnabled) sounds.stonePlayed(captured);
+    };
     _msgSub = c.messages.listen((m) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
