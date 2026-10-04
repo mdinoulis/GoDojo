@@ -16,8 +16,13 @@ Binaries and networks are not committed; download them as in Phase 0:
 - `engine/models/` – `kata1-b18c384nbt-s9996604416-d4316597426.bin.gz`,
   `b18c384nbt-humanv0.bin.gz`, `kata1-b15c192-s1672170752-d466197061.txt.gz`
 
-Tools used: Flutter 3.47 (`D:\tools\flutter`), JDK 21 (`D:\tools\jdk-21…`),
-Android SDK 36 + NDK 27.0.12077973.
+Tools used: Flutter 3.47 (`D:\tools\flutter`, with `D:\tools\flutter\bin` on the
+user PATH), JDK 21 (`D:\tools\jdk-21…`), Android SDK 36 + NDK 27.0.12077973.
+
+The repo folder was renamed from `KataGo` to `GoDojo`, and the app from "Go Study"
+to GoDojo (old Windows settings and saved games are migrated on first run).
+Flutter caches absolute paths, so after moving or renaming the repo folder run
+`flutter clean` in `app/` and both `packages/` before building again.
 
 ## Run
 - Desktop: `cd app && flutter run -d windows` (finds `engine/` automatically)
