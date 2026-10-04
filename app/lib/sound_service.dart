@@ -4,17 +4,11 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Plays recorded stone and capture sounds (assets/sounds, from KaTrain -
-/// see assets/sounds/CREDITS.md). One of several stone recordings is picked
-/// at random each move so repeated moves sound natural. Failures are
-/// ignored - sound is never essential.
+/// see assets/sounds/CREDITS.md). If several stone recordings are listed,
+/// one is picked at random each move. Failures are ignored - sound is never
+/// essential.
 class SoundService {
-  static const _stoneFiles = [
-    'sounds/stone1.wav',
-    'sounds/stone2.wav',
-    'sounds/stone3.wav',
-    'sounds/stone4.wav',
-    'sounds/stone5.wav',
-  ];
+  static const _stoneFiles = ['sounds/stone4.wav'];
 
   final _stones = [for (final _ in _stoneFiles) AudioPlayer()];
   final _capture = AudioPlayer();
@@ -40,7 +34,7 @@ class SoundService {
     try {
       await _init();
       var i = _random.nextInt(_stones.length);
-      if (i == _last) i = (i + 1) % _stones.length;
+      if (i == _last && _stones.length > 1) i = (i + 1) % _stones.length;
       _last = i;
       await _stones[i].stop();
       await _stones[i].resume();
