@@ -13,6 +13,14 @@ void main() {
     expect(AppSettings.fromJson({}).soundEnabled, isTrue);
   });
 
+  test('stone sound defaults to 4, persists and is kept in range', () {
+    expect(const AppSettings().stoneSound, 4);
+    final two = const AppSettings().copyWith(stoneSound: 2);
+    expect(AppSettings.fromJson(two.toJson()).stoneSound, 2);
+    expect(AppSettings.fromJson({'stoneSound': 9}).stoneSound, 5);
+    expect(AppSettings.fromJson({}).stoneSound, 4);
+  });
+
   test('controller reports placed stones and captures, not passes or undo', () {
     final c = GameController(
       engines: EngineService(),

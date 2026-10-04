@@ -50,7 +50,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
     final sounds = ref.read(soundServiceProvider);
     c.onStonePlayed = (move, captured) {
-      if (ref.read(settingsProvider).soundEnabled) sounds.stonePlayed(captured);
+      final s = ref.read(settingsProvider);
+      if (s.soundEnabled) sounds.stonePlayed(captured, sound: s.stoneSound);
     };
     _msgSub = c.messages.listen((m) {
       if (!mounted) return;

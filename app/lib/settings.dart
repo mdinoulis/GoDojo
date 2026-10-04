@@ -53,6 +53,9 @@ class AppSettings {
   final bool markLastMove;
   final bool soundEnabled;
 
+  /// Which stone recording (1-5) is used for every move.
+  final int stoneSound;
+
   // New-game defaults
   final GameMode mode;
   final int boardSize;
@@ -74,6 +77,7 @@ class AppSettings {
     this.showMoveNumbers = false,
     this.markLastMove = true,
     this.soundEnabled = true,
+    this.stoneSound = 4,
     this.mode = GameMode.vsBot,
     this.boardSize = 19,
     this.rules = Ruleset.japanese,
@@ -93,6 +97,7 @@ class AppSettings {
     bool? showMoveNumbers,
     bool? markLastMove,
     bool? soundEnabled,
+    int? stoneSound,
     GameMode? mode,
     int? boardSize,
     Ruleset? rules,
@@ -112,6 +117,7 @@ class AppSettings {
         showMoveNumbers: showMoveNumbers ?? this.showMoveNumbers,
         markLastMove: markLastMove ?? this.markLastMove,
         soundEnabled: soundEnabled ?? this.soundEnabled,
+        stoneSound: stoneSound ?? this.stoneSound,
         mode: mode ?? this.mode,
         boardSize: boardSize ?? this.boardSize,
         rules: rules ?? this.rules,
@@ -132,6 +138,7 @@ class AppSettings {
         'showMoveNumbers': showMoveNumbers,
         'markLastMove': markLastMove,
         'soundEnabled': soundEnabled,
+        'stoneSound': stoneSound,
         'mode': mode.name,
         'boardSize': boardSize,
         'rules': rules.name,
@@ -156,6 +163,7 @@ class AppSettings {
       showMoveNumbers: j['showMoveNumbers'] as bool? ?? d.showMoveNumbers,
       markLastMove: j['markLastMove'] as bool? ?? d.markLastMove,
       soundEnabled: j['soundEnabled'] as bool? ?? d.soundEnabled,
+      stoneSound: ((j['stoneSound'] as int?) ?? d.stoneSound).clamp(1, 5),
       mode: _enum(GameMode.values, j['mode'], d.mode),
       boardSize: j['boardSize'] as int? ?? d.boardSize,
       rules: _enum(Ruleset.values, j['rules'], d.rules),

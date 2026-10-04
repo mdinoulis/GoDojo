@@ -8,6 +8,7 @@ import 'package:katago_engine/katago_engine.dart';
 import '../board/board_view.dart';
 import '../engine_service.dart';
 import '../settings.dart';
+import '../sound_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -100,6 +101,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             value: s.soundEnabled,
             onChanged: (v) => _update((s) => s.copyWith(soundEnabled: v)),
           ),
+          ListTile(
+            enabled: s.soundEnabled,
+            title: const Text('Stone sound'),
+            subtitle: const Text('Used for every move - tap a number to hear it'),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: [
+                for (var i = 1; i <= SoundService.stoneSoundCount; i++)
+                  ButtonSegment(value: i, label: Text('$i')),
+              ],
+              selected: {s.stoneSound},
+              onSelectionChanged: s.soundEnabled
+                  ? (v) {
+                      _update((s) => s.copyWith(stoneSound: v.first));
+                      ref.read(soundServiceProvider).preview(v.first);
+                    }
+                  : null,
+            ),
+          ),
           const Divider(height: 32),
           Text('Engine (KataGo)', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
@@ -166,8 +189,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<T>(
         initialValue: value,
+        isExpanded: true,
         decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
-        items: [for (final v in values) DropdownMenuItem(value: v, child: Text(name(v)))],
+        items: [
+          for (final v in values)
+            DropdownMenuItem(
+                value: v, child: Text(name(v), overflow: TextOverflow.ellipsis)),
+        ],
         onChanged: (v) => onChanged(v as T),
       ),
     );
