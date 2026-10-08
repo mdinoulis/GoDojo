@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../board/board_view.dart';
 import '../engine_service.dart';
 import '../game_controller.dart';
+import '../resume_store.dart';
 import '../settings.dart';
 import '../sound_service.dart';
 import 'quality.dart';
@@ -21,13 +22,27 @@ class GameScreen extends ConsumerStatefulWidget {
   final Stone humanColour;
   final BotLevel level;
 
+  /// An unfinished game to continue instead of starting a new one.
+  final Game? resume;
+
   const GameScreen({
     super.key,
     required this.setup,
     required this.mode,
     required this.humanColour,
     required this.level,
+    this.resume,
   });
+
+  GameScreen.resume(ResumableGame g, {Key? key})
+      : this(
+          key: key,
+          setup: g.setup,
+          mode: g.mode,
+          humanColour: g.humanColour,
+          level: g.level,
+          resume: g.toGame(),
+        );
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -36,6 +51,11 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen> {
   late final GameController c;
   StreamSubscription<String>? _msgSub;
+  String? _savedJson;
+
+  /// Whether the saved unfinished game (for this mode) is this one - a new
+  /// game only replaces it once a move has been played.
+  late bool _ownsSaved = widget.resume != null;
 
   @override
   void initState() {
@@ -47,7 +67,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       mode: widget.mode,
       humanColour: widget.humanColour,
       level: widget.level,
+      resume: widget.resume,
     );
+    c.addListener(_persist);
     final sounds = ref.read(soundServiceProvider);
     sounds.warmUp(ref.read(settingsProvider).stoneSound);
     c.onStonePlayed = (move, captured) {
@@ -63,12 +85,38 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // Warm up the engine (and let the bot open if it plays Black).
     final engines = ref.read(engineServiceProvider);
     engines.engineFor(ref.read(settingsProvider)).then((_) {
-      if (mounted) c.startIfBotToMove();
+      if (!mounted) return;
+      if (c.game.bothPassed && c.game.result == null) {
+        c.startScoring(); // the game was left while counting
+      } else if (!c.game.canRedo) {
+        c.startIfBotToMove(); // else wait for "Bot move" (user went back)
+      }
     }).catchError((Object e) {
       if (mounted && widget.mode == GameMode.vsBot) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
       }
     });
+  }
+
+  /// Keeps the unfinished game saved so it can be continued later, even
+  /// after the app is closed or the power fails; forgets it once finished.
+  void _persist() {
+    final store = ref.read(resumeStoreProvider.notifier);
+    final snap = ResumableGame.of(c.game,
+        mode: c.mode, humanColour: c.humanColour, level: c.level);
+    if (snap == null) {
+      if (c.game.result != null && _ownsSaved) {
+        store.clear(c.mode);
+        _savedJson = null;
+      }
+      return;
+    }
+    final json = snap.toJson()..remove('savedAt');
+    final key = json.toString();
+    if (key == _savedJson) return;
+    _savedJson = key;
+    _ownsSaved = true;
+    store.save(snap);
   }
 
   @override
@@ -318,11 +366,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Widget _actions() {
     final over = c.game.isOver;
     final scoring = c.scoring != null;
+    final scheme = Theme.of(context).colorScheme;
     final btns = <Widget>[
+      FilledButton.icon(
+        onPressed: c.canPlay ? c.pass : null,
+        icon: const Icon(Icons.skip_next, size: 18),
+        label: const Text('Pass'),
+        style: FilledButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          backgroundColor: scheme.tertiary,
+          foregroundColor: scheme.onTertiary,
+        ),
+      ),
+      _btn(Icons.flag_outlined, 'Resign', !over && !scoring ? _confirmResign : null),
       _btn(Icons.undo, 'Undo', c.game.canUndo && !(c.scoring?.accepted ?? false) ? c.undo : null),
       _btn(Icons.redo, 'Redo', c.game.canRedo && !c.botThinking ? c.redo : null),
-      _btn(Icons.skip_next_outlined, 'Pass', c.canPlay ? c.pass : null),
-      _btn(Icons.flag_outlined, 'Resign', !over && !scoring ? _confirmResign : null),
       if (c.isVsBot)
         _btn(Icons.swap_horiz, 'Switch sides', !over && !scoring ? c.switchSides : null),
       if (c.botWaiting) _btn(Icons.smart_toy_outlined, 'Bot move', c.botPlayNow),

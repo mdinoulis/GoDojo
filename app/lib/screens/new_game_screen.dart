@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_core/go_core.dart';
 import 'package:katago_engine/katago_engine.dart';
 
+import '../resume_store.dart';
 import '../settings.dart';
 import 'game_screen.dart';
 
@@ -136,6 +137,16 @@ class _NewGameScreenState extends ConsumerState<NewGameScreen> {
                 icon: const Icon(Icons.add)),
           ]),
           const SizedBox(height: 32),
+          if (ref.watch(resumeStoreProvider)[mode] != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'You have an unfinished ${mode == GameMode.vsBot ? 'game against KataGo' : 'over-the-board game'}. '
+                'It is replaced once you play a move in the new game - '
+                'go back to continue it instead.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           FilledButton.icon(
             icon: const Icon(Icons.play_arrow),
             label: const Padding(

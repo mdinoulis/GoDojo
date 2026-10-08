@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_core/go_core.dart';
 
@@ -67,6 +69,76 @@ class _BoardViewState extends State<BoardView> {
   final _stones = StoneRenderer();
   Point? _hover;
 
+  // The press being tracked: a stone is placed only once it has stayed on
+  // the same point for the touch hold time (mouse clicks place at once).
+  int? _pointer;
+  Point? _pressed;
+  Offset _pressStart = Offset.zero;
+  bool _isMouse = false;
+  Timer? _hold;
+
+  Duration get _holdTime => Duration(
+      milliseconds: (widget.settings.touchHoldSeconds * 1000).round());
+
+  void _down(PointerDownEvent e, BoardGeometry geo) {
+    if (_pointer != null) {
+      _cancelPress(); // a second finger: not a deliberate move
+      return;
+    }
+    final p = geo.pointAt(e.localPosition);
+    if (p == null || widget.onTap == null) return;
+    if (e.kind == PointerDeviceKind.mouse && e.buttons != kPrimaryMouseButton) return;
+    _pointer = e.pointer;
+    _pressed = p;
+    _pressStart = e.position;
+    _isMouse = e.kind == PointerDeviceKind.mouse;
+    if (!_isMouse) {
+      setState(() => _hover = p); // preview the stone while holding
+      if (_holdTime > Duration.zero) {
+        _hold = Timer(_holdTime, () {
+          final q = _pressed;
+          _cancelPress();
+          if (q != null) widget.onTap?.call(q);
+        });
+      }
+    }
+  }
+
+  void _move(PointerMoveEvent e, BoardGeometry geo) {
+    if (e.pointer != _pointer) return;
+    // Sliding to another point, or dragging (e.g. scrolling), cancels.
+    if (geo.pointAt(e.localPosition) != _pressed ||
+        (e.position - _pressStart).distance > kTouchSlop) {
+      _cancelPress();
+    }
+  }
+
+  void _up(PointerUpEvent e, BoardGeometry geo) {
+    if (e.pointer != _pointer) return;
+    final p = _pressed;
+    // With a hold time the timer places the stone; lifting early ignores it.
+    final placeNow = _isMouse || _holdTime == Duration.zero;
+    _cancelPress();
+    if (placeNow && p != null && geo.pointAt(e.localPosition) == p) {
+      widget.onTap?.call(p);
+    }
+  }
+
+  void _cancelPress() {
+    _hold?.cancel();
+    _hold = null;
+    final wasTouch = _pointer != null && !_isMouse;
+    _pointer = null;
+    _pressed = null;
+    if (wasTouch && mounted) setState(() => _hover = null);
+  }
+
+  @override
+  void dispose() {
+    _hold?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
@@ -80,14 +152,12 @@ class _BoardViewState extends State<BoardView> {
             if (p != _hover) setState(() => _hover = p);
           },
           onExit: (_) => setState(() => _hover = null),
-          child: GestureDetector(
+          child: Listener(
             behavior: HitTestBehavior.opaque,
-            onTapUp: widget.onTap == null
-                ? null
-                : (d) {
-                    final p = geo.pointAt(d.localPosition);
-                    if (p != null) widget.onTap!(p);
-                  },
+            onPointerDown: (e) => _down(e, geo),
+            onPointerMove: (e) => _move(e, geo),
+            onPointerUp: (e) => _up(e, geo),
+            onPointerCancel: (_) => _cancelPress(),
             child: Stack(fit: StackFit.expand, children: [
               RepaintBoundary(
                 child: CustomPaint(

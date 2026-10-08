@@ -56,6 +56,11 @@ class AppSettings {
   /// Which stone recording (1-5) is used for every move.
   final int stoneSound;
 
+  /// How long (seconds, 0-1) a finger or pen must stay on one point before
+  /// a stone is placed. Shorter touches are ignored. Mouse clicks are not
+  /// affected.
+  final double touchHoldSeconds;
+
   // New-game defaults
   final GameMode mode;
   final int boardSize;
@@ -78,6 +83,7 @@ class AppSettings {
     this.markLastMove = true,
     this.soundEnabled = true,
     this.stoneSound = 4,
+    this.touchHoldSeconds = 0.25,
     this.mode = GameMode.vsBot,
     this.boardSize = 19,
     this.rules = Ruleset.japanese,
@@ -98,6 +104,7 @@ class AppSettings {
     bool? markLastMove,
     bool? soundEnabled,
     int? stoneSound,
+    double? touchHoldSeconds,
     GameMode? mode,
     int? boardSize,
     Ruleset? rules,
@@ -118,6 +125,7 @@ class AppSettings {
         markLastMove: markLastMove ?? this.markLastMove,
         soundEnabled: soundEnabled ?? this.soundEnabled,
         stoneSound: stoneSound ?? this.stoneSound,
+        touchHoldSeconds: touchHoldSeconds ?? this.touchHoldSeconds,
         mode: mode ?? this.mode,
         boardSize: boardSize ?? this.boardSize,
         rules: rules ?? this.rules,
@@ -139,6 +147,7 @@ class AppSettings {
         'markLastMove': markLastMove,
         'soundEnabled': soundEnabled,
         'stoneSound': stoneSound,
+        'touchHoldSeconds': touchHoldSeconds,
         'mode': mode.name,
         'boardSize': boardSize,
         'rules': rules.name,
@@ -164,6 +173,9 @@ class AppSettings {
       markLastMove: j['markLastMove'] as bool? ?? d.markLastMove,
       soundEnabled: j['soundEnabled'] as bool? ?? d.soundEnabled,
       stoneSound: ((j['stoneSound'] as int?) ?? d.stoneSound).clamp(1, 5),
+      touchHoldSeconds:
+          ((j['touchHoldSeconds'] as num?)?.toDouble() ?? d.touchHoldSeconds)
+              .clamp(0.0, 1.0),
       mode: _enum(GameMode.values, j['mode'], d.mode),
       boardSize: j['boardSize'] as int? ?? d.boardSize,
       rules: _enum(Ruleset.values, j['rules'], d.rules),

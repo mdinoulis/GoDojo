@@ -28,7 +28,7 @@ void main() {
           height: 400,
           child: BoardView(
             board: Board(9),
-            settings: const AppSettings(showCoordinates: false),
+            settings: const AppSettings(showCoordinates: false, touchHoldSeconds: 0),
             onTap: (p) => tapped = p,
           ),
         ),

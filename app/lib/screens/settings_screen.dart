@@ -124,6 +124,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const Divider(height: 32),
+          Text('Touch', style: Theme.of(context).textTheme.titleLarge),
+          _HoldTimeSlider(
+            key: ValueKey(s.touchHoldSeconds),
+            seconds: s.touchHoldSeconds,
+            onChanged: (v) => _update((s) => s.copyWith(touchHoldSeconds: v)),
+          ),
+          const Divider(height: 32),
           Text('Engine (KataGo)', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           if (desktop)
@@ -246,6 +253,39 @@ class _VisitsSliderState extends State<_VisitsSlider> {
         max: widget.max.toDouble(),
         onChanged: (x) => setState(() => v = x),
         onChangeEnd: (x) => widget.onChanged(x.round()),
+      ),
+    ]);
+  }
+}
+
+class _HoldTimeSlider extends StatefulWidget {
+  final double seconds;
+  final ValueChanged<double> onChanged;
+  const _HoldTimeSlider({super.key, required this.seconds, required this.onChanged});
+
+  @override
+  State<_HoldTimeSlider> createState() => _HoldTimeSliderState();
+}
+
+class _HoldTimeSliderState extends State<_HoldTimeSlider> {
+  late double v = widget.seconds;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 8),
+      Text('Hold to place a stone: ${v.toStringAsFixed(2)} s'),
+      Text('Keep your finger or pen on a point this long before the stone is '
+          'placed; shorter touches are ignored. 0 = place on tap. '
+          'Mouse clicks are not affected.',
+          style: Theme.of(context).textTheme.bodySmall),
+      Slider(
+        value: v,
+        max: 1,
+        divisions: 20,
+        label: '${v.toStringAsFixed(2)} s',
+        onChanged: (x) => setState(() => v = x),
+        onChangeEnd: widget.onChanged,
       ),
     ]);
   }

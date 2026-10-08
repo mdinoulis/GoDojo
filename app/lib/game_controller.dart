@@ -69,7 +69,8 @@ class GameController extends ChangeNotifier {
     required this.humanColour,
     required this.level,
     this.botMinDelay = const Duration(milliseconds: 500),
-  }) : game = Game(setup);
+    Game? resume,
+  }) : game = resume ?? Game(setup);
 
   bool get isVsBot => mode == GameMode.vsBot;
   bool get isHumanTurn => !isVsBot || game.toMove == humanColour;

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_core/go_core.dart';
 
 import '../board/board_view.dart';
+import '../resume_store.dart';
 import '../settings.dart';
+import 'game_screen.dart';
 import 'new_game_screen.dart';
 import 'saved_games_screen.dart';
 import 'settings_screen.dart';
@@ -14,6 +16,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final unfinished = ref.watch(resumeStoreProvider);
     final preview = Board.fromAscii('''
       . . . . . . . . .
       . . . . . . . . .
@@ -52,6 +55,11 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  for (final mode in GameMode.values)
+                    if (unfinished[mode] case final g?) ...[
+                      _ContinueButton(game: g),
+                      const SizedBox(height: 12),
+                    ],
                   FilledButton.icon(
                     icon: const Icon(Icons.smart_toy_outlined),
                     label: const Text('Play against KataGo'),
@@ -89,5 +97,29 @@ class HomeScreen extends ConsumerWidget {
   void _newGame(BuildContext context, GameMode mode) {
     Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => NewGameScreen(initialMode: mode)));
+  }
+}
+
+class _ContinueButton extends StatelessWidget {
+  final ResumableGame game;
+  const _ContinueButton({required this.game});
+
+  @override
+  Widget build(BuildContext context) {
+    final g = game;
+    final who = g.mode == GameMode.vsBot ? 'vs ${g.level.label}' : 'over the board';
+    return FilledButton.icon(
+      key: ValueKey('continue-${g.mode.name}'),
+      icon: const Icon(Icons.play_arrow),
+      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+      label: Column(children: [
+        Text('Continue game $who'),
+        Text('${g.setup.size}×${g.setup.size} · move ${g.moveNumber}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimary)),
+      ]),
+      onPressed: () => Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => GameScreen.resume(g))),
+    );
   }
 }
