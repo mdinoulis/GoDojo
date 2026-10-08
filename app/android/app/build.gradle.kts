@@ -7,7 +7,9 @@ plugins {
 android {
     namespace = "com.godojo.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973" // matches engine/android/build.sh
+    // Highest NDK any plugin needs (backward compatible). The prebuilt
+    // libkatago.so from engine/android/build.sh is still built with NDK 27.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
