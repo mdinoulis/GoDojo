@@ -16,7 +16,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final unfinished = ref.watch(resumeStoreProvider);
     final preview = Board.fromAscii('''
       . . . . . . . . .
       . . . . . . . . .
@@ -55,21 +54,16 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  for (final mode in GameMode.values)
-                    if (unfinished[mode] case final g?) ...[
-                      _ContinueButton(game: g),
-                      const SizedBox(height: 12),
-                    ],
                   FilledButton.icon(
                     icon: const Icon(Icons.smart_toy_outlined),
                     label: const Text('Play against KataGo'),
-                    onPressed: () => _newGame(context, GameMode.vsBot),
+                    onPressed: () => _newGame(context, ref, GameMode.vsBot),
                   ),
                   const SizedBox(height: 12),
                   FilledButton.tonalIcon(
                     icon: const Icon(Icons.people_outline),
                     label: const Text('Over-the-board game (2 players)'),
-                    onPressed: () => _newGame(context, GameMode.otb),
+                    onPressed: () => _newGame(context, ref, GameMode.otb),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
@@ -94,32 +88,33 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  void _newGame(BuildContext context, GameMode mode) {
+  /// Offers to continue the unfinished game of this kind, if there is one.
+  /// "No" discards it and goes to the new game screen.
+  Future<void> _newGame(BuildContext context, WidgetRef ref, GameMode mode) async {
+    final g = ref.read(resumeStoreProvider)[mode];
+    if (g != null) {
+      final who = mode == GameMode.vsBot ? 'against ${g.level.label}' : 'over the board';
+      final resume = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Continue game?'),
+          content: Text('You have an unfinished game $who '
+              '(${g.setup.size}×${g.setup.size}, move ${g.moveNumber}).'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes')),
+          ],
+        ),
+      );
+      if (resume == null || !context.mounted) return; // dismissed
+      if (resume) {
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => GameScreen.resume(g)));
+        return;
+      }
+      ref.read(resumeStoreProvider.notifier).clear(mode);
+    }
     Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => NewGameScreen(initialMode: mode)));
-  }
-}
-
-class _ContinueButton extends StatelessWidget {
-  final ResumableGame game;
-  const _ContinueButton({required this.game});
-
-  @override
-  Widget build(BuildContext context) {
-    final g = game;
-    final who = g.mode == GameMode.vsBot ? 'vs ${g.level.label}' : 'over the board';
-    return FilledButton.icon(
-      key: ValueKey('continue-${g.mode.name}'),
-      icon: const Icon(Icons.play_arrow),
-      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
-      label: Column(children: [
-        Text('Continue game $who'),
-        Text('${g.setup.size}×${g.setup.size} · move ${g.moveNumber}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onPrimary)),
-      ]),
-      onPressed: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => GameScreen.resume(g))),
-    );
   }
 }

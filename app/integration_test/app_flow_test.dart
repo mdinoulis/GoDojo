@@ -46,7 +46,7 @@ bool hasText(String s) => find.textContaining(s).evaluate().isNotEmpty;
 Future<void> tapPoint(WidgetTester t, int x, int y, int size) async {
   final rect = t.getRect(find.byType(BoardView));
   final g = BoardGeometry(rect.width, size, true);
-  // Hold the point for longer than the default touch hold time (0.25 s).
+  // Hold the point for longer than the default touch hold time (0.2 s).
   final press = await t.startGesture(rect.topLeft + g.atIndex(x, y));
   await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
   await t.pump();

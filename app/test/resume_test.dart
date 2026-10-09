@@ -91,7 +91,7 @@ void main() {
     addTearDown(t.view.reset);
     SharedPreferences.setMockInitialValues({
       'settings.v1':
-          '{"touchHoldSeconds":0,"soundEnabled":false,"mode":"otb","boardSize":9}',
+          '{"touchHold":0,"soundEnabled":false,"mode":"otb","boardSize":9}',
     });
     final prefs = await SharedPreferences.getInstance();
     final container =
@@ -124,27 +124,75 @@ void main() {
     expect(saved!.moveNumber, 1);
     expect(prefs.getString('unfinished.otb.v1'), isNotNull, reason: 'written to disk');
 
-    // Back to the menu: the game can be continued.
+    Future<void> settle() async {
+      await t.pump();
+      await t.pump(const Duration(seconds: 1));
+    }
+
+    // Back to the menu: choosing the same kind of game offers to continue it.
     await t.pageBack();
-    await t.pump();
-    await t.pump(const Duration(seconds: 1));
-    final cont = find.textContaining('Continue game over the board');
-    expect(cont, findsOneWidget);
-    await t.tap(cont);
-    await t.pump();
-    await t.pump(const Duration(seconds: 1));
+    await settle();
+    expect(find.textContaining('Continue game'), findsNothing, reason: 'no menu button');
+    final otb = find.text('Over-the-board game (2 players)');
+
+    // A bot game is not offered the OTB game.
+    await t.tap(find.text('Play against KataGo'));
+    await settle();
+    expect(find.text('Continue game?'), findsNothing);
+    expect(find.text('Start game'), findsOneWidget);
+    await t.pageBack();
+    await settle();
+
+    // "Yes" continues where it was left.
+    await t.tap(otb);
+    await settle();
+    expect(find.text('Continue game?'), findsOneWidget);
+    await t.tap(find.text('Yes'));
+    await settle();
     expect(find.text('Move 1 / 1'), findsOneWidget);
     expect(find.textContaining('Black passed'), findsOneWidget);
 
     // Resigning finishes it, so it is no longer offered.
     await t.ensureVisible(find.text('Resign'));
     await t.tap(find.text('Resign'));
-    await t.pump();
-    await t.pump(const Duration(seconds: 1));
+    await settle();
     await t.tap(find.widgetWithText(FilledButton, 'Resign'));
-    await t.pump();
-    await t.pump(const Duration(seconds: 1));
+    await settle();
     expect(container.read(resumeStoreProvider), isEmpty);
     expect(prefs.getString('unfinished.otb.v1'), isNull);
+    await t.pageBack();
+    await settle();
+
+    // Start another game and leave it unfinished.
+    await t.tap(otb);
+    await settle();
+    expect(find.text('Continue game?'), findsNothing);
+    await t.ensureVisible(find.text('Start game'));
+    await t.tap(find.text('Start game'));
+    await settle();
+    await t.ensureVisible(find.text('Pass'));
+    await t.tap(find.text('Pass'));
+    await settle();
+    expect(container.read(resumeStoreProvider)[GameMode.otb], isNotNull);
+    await t.pageBack();
+    await settle();
+
+    // "No" discards it, even if the new game is left without a move.
+    await t.tap(otb);
+    await settle();
+    await t.tap(find.text('No'));
+    await settle();
+    expect(find.text('Start game'), findsOneWidget);
+    expect(container.read(resumeStoreProvider), isEmpty);
+    expect(prefs.getString('unfinished.otb.v1'), isNull);
+    await t.ensureVisible(find.text('Start game'));
+    await t.tap(find.text('Start game'));
+    await settle();
+    await t.pageBack(); // no moves played
+    await settle();
+    await t.tap(otb);
+    await settle();
+    expect(find.text('Continue game?'), findsNothing);
+    expect(find.text('Start game'), findsOneWidget);
   });
 }

@@ -281,8 +281,8 @@ class _HoldTimeSliderState extends State<_HoldTimeSlider> {
           style: Theme.of(context).textTheme.bodySmall),
       Slider(
         value: v,
-        max: 1,
-        divisions: 20,
+        max: 0.5,
+        divisions: 10,
         label: '${v.toStringAsFixed(2)} s',
         onChanged: (x) => setState(() => v = x),
         onChangeEnd: widget.onChanged,

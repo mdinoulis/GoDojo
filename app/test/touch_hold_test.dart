@@ -12,7 +12,7 @@ void main() {
       t.getTopLeft(find.byType(BoardView)) +
       Offset(cell * (0.7 + x), cell * (0.7 + y));
 
-  Future<void> board(WidgetTester t, {double hold = 0.25}) async {
+  Future<void> board(WidgetTester t, {double hold = 0.2}) async {
     taps.clear();
     await t.pumpWidget(MaterialApp(
       home: Center(
@@ -30,19 +30,21 @@ void main() {
     ));
   }
 
-  test('hold time defaults to 0.25 s, persists and is kept in 0-1 s', () {
-    expect(const AppSettings().touchHoldSeconds, 0.25);
-    final s = const AppSettings().copyWith(touchHoldSeconds: 0.6);
-    expect(AppSettings.fromJson(s.toJson()).touchHoldSeconds, 0.6);
-    expect(AppSettings.fromJson({'touchHoldSeconds': 3}).touchHoldSeconds, 1.0);
-    expect(AppSettings.fromJson({'touchHoldSeconds': -1}).touchHoldSeconds, 0.0);
-    expect(AppSettings.fromJson({}).touchHoldSeconds, 0.25);
+  test('hold time defaults to 0.2 s, persists and is kept in 0-0.5 s', () {
+    expect(const AppSettings().touchHoldSeconds, 0.2);
+    final s = const AppSettings().copyWith(touchHoldSeconds: 0.35);
+    expect(AppSettings.fromJson(s.toJson()).touchHoldSeconds, 0.35);
+    expect(AppSettings.fromJson({'touchHold': 3}).touchHoldSeconds, 0.5);
+    expect(AppSettings.fromJson({'touchHold': -1}).touchHoldSeconds, 0.0);
+    expect(AppSettings.fromJson({}).touchHoldSeconds, 0.2);
+    // Settings saved with the old 0.25 s default get the new default.
+    expect(AppSettings.fromJson({'touchHoldSeconds': 0.25}).touchHoldSeconds, 0.2);
   });
 
   testWidgets('a quick touch is ignored', (t) async {
     await board(t);
     final g = await t.startGesture(at(t, 2, 3));
-    await t.pump(const Duration(milliseconds: 200));
+    await t.pump(const Duration(milliseconds: 150));
     await g.up();
     await t.pump(const Duration(seconds: 1));
     expect(taps, isEmpty);
@@ -51,7 +53,7 @@ void main() {
   testWidgets('holding for the hold time places the stone', (t) async {
     await board(t);
     final g = await t.startGesture(at(t, 2, 3));
-    await t.pump(const Duration(milliseconds: 240));
+    await t.pump(const Duration(milliseconds: 190));
     expect(taps, isEmpty);
     await t.pump(const Duration(milliseconds: 20));
     expect(taps, [const Point(2, 3)]);
@@ -81,11 +83,11 @@ void main() {
   });
 
   testWidgets('the hold time follows the setting', (t) async {
-    await board(t, hold: 0.8);
+    await board(t, hold: 0.45);
     final g = await t.startGesture(at(t, 4, 4));
-    await t.pump(const Duration(milliseconds: 500));
+    await t.pump(const Duration(milliseconds: 400));
     expect(taps, isEmpty);
-    await t.pump(const Duration(milliseconds: 310));
+    await t.pump(const Duration(milliseconds: 60));
     expect(taps, [const Point(4, 4)]);
     await g.up();
   });
