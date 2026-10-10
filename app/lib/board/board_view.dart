@@ -25,7 +25,7 @@ class BoardDecorations {
   final Point? lastMove;
   final Map<Point, int>? moveNumbers;
   final List<CandidateMark> candidates;
-  final List<double>? ownership;
+  /// Territory / dead stones, as when counting (also used for estimates).
   final List<PointStatus>? scoring;
   final Set<Point> gaps;
   final Set<Point> unsettled;
@@ -35,7 +35,6 @@ class BoardDecorations {
     this.lastMove,
     this.moveNumbers,
     this.candidates = const [],
-    this.ownership,
     this.scoring,
     this.gaps = const {},
     this.unsettled = const {},
@@ -366,34 +365,6 @@ class _ForegroundPainter extends CustomPainter {
     final r = g.stoneRadius;
     final status = d.scoring;
 
-    // Ownership (score estimate) under the stones.
-    final own = d.ownership;
-    if (own != null && status == null) {
-      for (final p in board.points) {
-        final v = own[p.index(board.size)];
-        if (v.abs() < 0.15) continue;
-        final stone = board[p];
-        final owner = v > 0 ? Stone.black : Stone.white;
-        if (stone == owner) continue;
-        final side = g.cell * 0.62 * v.abs();
-        final rect = Rect.fromCenter(center: g.at(p), width: side, height: side);
-        canvas.drawRect(
-          rect,
-          Paint()
-            ..color = (owner == Stone.black ? Colors.black : Colors.white)
-                .withValues(alpha: 0.5 + 0.45 * v.abs()),
-        );
-        if (owner == Stone.white) {
-          canvas.drawRect(
-              rect,
-              Paint()
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 1
-                ..color = Colors.black38);
-        }
-      }
-    }
-
     // Stones.
     for (final p in board.points) {
       final st = board[p];
@@ -401,15 +372,11 @@ class _ForegroundPainter extends CustomPainter {
       final dead = status != null &&
           (status[p.index(board.size)] == PointStatus.deadBlack ||
               status[p.index(board.size)] == PointStatus.deadWhite);
-      final likelyDead = own != null &&
-          status == null &&
-          (st == Stone.black ? own[p.index(board.size)] < -0.5 : own[p.index(board.size)] > 0.5);
       stones.draw(canvas, g.at(p), r, st, s.stoneStyle,
           variant: p.x * 7 + p.y * 13, opacity: dead ? 0.45 : 1);
-      if (likelyDead) _cross(canvas, g.at(p), r * 0.45, st);
     }
 
-    // Territory, seki and dead marks when counting.
+    // Territory, seki and dead marks (counting or score estimate).
     if (status != null) {
       for (final p in board.points) {
         final ps = status[p.index(board.size)];
@@ -533,14 +500,6 @@ class _ForegroundPainter extends CustomPainter {
       ..lineTo(c.dx - side, c.dy)
       ..close();
     canvas.drawPath(path, Paint()..color = Colors.blueGrey.shade600);
-  }
-
-  void _cross(Canvas canvas, Offset c, double h, Stone st) {
-    final p = Paint()
-      ..strokeWidth = max(1.5, h * 0.3)
-      ..color = st == Stone.black ? Colors.white : Colors.black;
-    canvas.drawLine(c - Offset(h, h), c + Offset(h, h), p);
-    canvas.drawLine(c - Offset(-h, h), c + Offset(-h, h), p);
   }
 
   void _label(Canvas canvas, Offset c, String text, Color color, double fontSize) {

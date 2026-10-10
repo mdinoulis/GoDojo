@@ -75,6 +75,9 @@ class GameController extends ChangeNotifier {
   bool get isVsBot => mode == GameMode.vsBot;
   bool get isHumanTurn => !isVsBot || game.toMove == humanColour;
   bool get isScoring => scoring != null;
+
+  /// Counting has started but the engine is still working out the result.
+  bool get isCounting => isScoring && busy;
   bool get canPlay => !game.isOver && !botThinking && isHumanTurn && !isScoring;
 
   /// It is the bot's turn but it is waiting (e.g. after navigating back).
@@ -103,7 +106,7 @@ class GameController extends ChangeNotifier {
 
   void tap(Point p) {
     if (isScoring) {
-      toggleDead(p);
+      if (!isCounting) toggleDead(p); // the final count would replace it
       return;
     }
     if (!canPlay) return;
@@ -350,6 +353,30 @@ class GameController extends ChangeNotifier {
     }
   }
 
+  /// The score estimate as counting marks, so both look the same on the
+  /// board: dead stones are guessed the same way as when counting (whole
+  /// groups), and an empty point is a side's territory when KataGo gives it
+  /// to that side with over 50% confidence.
+  List<PointStatus>? get estimateStatus {
+    final own = estimate?.ownership;
+    if (own == null) return null;
+    final board = game.board;
+    final dead = Scorer.guessDeadStones(board, own, rules: game.rules);
+    const sure = Scorer.deadThreshold;
+    return [
+      for (final p in board.points)
+        switch (board[p]) {
+          Stone.black => dead.contains(p) ? PointStatus.deadBlack : PointStatus.blackStone,
+          Stone.white => dead.contains(p) ? PointStatus.deadWhite : PointStatus.whiteStone,
+          null => switch (own[p.index(board.size)]) {
+              > sure => PointStatus.blackTerritory,
+              < -sure => PointStatus.whiteTerritory,
+              _ => PointStatus.dame,
+            },
+        }
+    ];
+  }
+
   void closeOverlay() {
     overlay = BoardOverlay.none;
     notifyListeners();
@@ -427,6 +454,7 @@ class GameController extends ChangeNotifier {
 
   /// Leaves counting and continues playing (undoing the final passes).
   void resumePlay() {
+    if (isCounting) engines.cancel(); // stop the unfinished count
     scoring = null;
     game.clearResult();
     while (game.canUndo && (game.lastMove?.isPass ?? false)) {

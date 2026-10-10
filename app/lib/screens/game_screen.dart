@@ -54,11 +54,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   StreamSubscription<String>? _msgSub;
   String? _savedJson;
 
-  // Portrait has no room for the counting card, so the score is shown in a
-  // dialog: opened once the count is ready, reopened with the Count button.
+  // Portrait has no room below the board, so counting and the score
+  // estimate are shown in place of the buttons and move slider.
   bool _portrait = true;
-  bool _scoreDialogOpen = false;
-  bool _scoreAutoShown = false;
+
+  /// The accepted result was closed to get the buttons back.
+  bool _resultClosed = false;
 
   /// Whether the saved unfinished game (for this mode) is this one - a new
   /// game only replaces it once a move has been played.
@@ -77,7 +78,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       resume: widget.resume,
     );
     c.addListener(_persist);
-    c.addListener(_watchScoring);
     final sounds = ref.read(soundServiceProvider);
     sounds.warmUp(ref.read(settingsProvider).stoneSound);
     c.onStonePlayed = (move, captured) {
@@ -248,6 +248,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     final scoring = c.scoring;
     if (scoring != null) {
+      // Nothing is marked until counting has finished.
+      if (c.isCounting) return BoardDecorations(lastMove: last, moveNumbers: numbers);
       return BoardDecorations(
         lastMove: last,
         moveNumbers: numbers,
@@ -299,7 +301,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         );
       case BoardOverlay.estimate:
         return BoardDecorations(
-            lastMove: last, moveNumbers: numbers, ownership: c.estimate?.ownership);
+            lastMove: last, moveNumbers: numbers, scoring: c.estimateStatus);
       case BoardOverlay.none:
         break;
     }
@@ -323,12 +325,132 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           _Notice(icon: Icons.error_outline, text: engines.error!, error: true),
       ];
 
-  List<Widget> _controls() => [
-        const SizedBox(height: 8),
-        _actions(),
-        const SizedBox(height: 2),
-        _navigator(),
-      ];
+  List<Widget> _controls() {
+    final controls = Column(mainAxisSize: MainAxisSize.min, children: [
+      _actions(),
+      const SizedBox(height: 2),
+      _navigator(),
+    ]);
+    final panel = _portrait ? _resultsPanel() : null;
+    return [
+      const SizedBox(height: 8),
+      if (panel == null)
+        controls
+      else
+        // The hidden buttons and slider still take up their space, so the
+        // board keeps its size; the results sit on top of them.
+        Stack(children: [
+          Visibility.maintain(visible: false, child: controls),
+          Positioned.fill(child: panel),
+        ]),
+    ];
+  }
+
+  /// Counting or score estimate, shown instead of the buttons in portrait.
+  Widget? _resultsPanel() {
+    if (c.scoring == null) _resultClosed = false;
+    final Widget? content;
+    if (c.scoring != null && !_resultClosed) {
+      content = _scorePanel();
+    } else if (c.overlay == BoardOverlay.estimate) {
+      content = _estimatePanel();
+    } else {
+      content = null;
+    }
+    if (content == null) return null;
+    return Card(
+      margin: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: content,
+        ),
+      ),
+    );
+  }
+
+  Widget _scorePanel() {
+    final s = c.scoring!;
+    final r = s.result;
+    final theme = Theme.of(context);
+    if (c.isCounting) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text('Counting…', style: theme.textTheme.titleMedium)),
+          const SizedBox(
+              width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+        ]),
+        Text('Working out dead stones and territory.', style: theme.textTheme.bodySmall),
+        const SizedBox(height: 6),
+        OutlinedButton(onPressed: c.resumePlay, child: const Text('Resume play')),
+      ]);
+    }
+    String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+    String side(String name, List<(String, num)> parts, double total) =>
+        '$name: ${[for (final (l, v) in parts) '$l ${fmt(v.toDouble())}'].join(' + ')} = ${fmt(total)}';
+    final territory = r.rules.scoring == ScoringType.territory;
+    final black = territory
+        ? [('territory', r.blackTerritory), ('prisoners', r.blackPrisoners)]
+        : [('stones', r.blackStones), ('territory', r.blackTerritory)];
+    final white = territory
+        ? [('territory', r.whiteTerritory), ('prisoners', r.whitePrisoners), ('komi', r.komi)]
+        : [
+            ('stones', r.whiteStones),
+            ('territory', r.whiteTerritory),
+            if (r.handicapBonus > 0) ('handicap', r.handicapBonus),
+            ('komi', r.komi),
+          ];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(
+          child: Text(s.accepted ? c.resultText() : _scoreLine(r),
+              style: theme.textTheme.titleMedium),
+        ),
+      ]),
+      Text(side('Black', black, r.blackScore)),
+      Text(side('White', white, r.whiteScore)),
+      if (r.sekiStones.isNotEmpty)
+        const Text('◆ Seki – points in seki are not counted.'),
+      if (!s.isFinished && !s.accepted)
+        Text(
+          [
+            'Not finished:',
+            if (r.unsettled.isNotEmpty) 'red dots are still open;',
+            if (s.allGaps.isNotEmpty) '${s.allGaps.length} point(s) marked "?" still to play.',
+          ].join(' '),
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+        ),
+      if (!s.accepted)
+        Text('Tap a stone to mark it dead or alive.', style: theme.textTheme.bodySmall),
+      const SizedBox(height: 6),
+      Wrap(spacing: 8, runSpacing: 6, children: [
+        if (!s.accepted) ...[
+          FilledButton(onPressed: c.acceptScore, child: const Text('Accept result')),
+          OutlinedButton(onPressed: c.resumePlay, child: const Text('Resume play')),
+        ] else ...[
+          FilledButton.icon(
+              onPressed: _review,
+              icon: const Icon(Icons.query_stats),
+              label: const Text('Review game')),
+          OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(), child: const Text('Back to menu')),
+          TextButton(
+              onPressed: () => setState(() => _resultClosed = true),
+              child: const Text('Close')),
+        ],
+      ]),
+    ]);
+  }
+
+  Widget _estimatePanel() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+              child: Text('Score estimate', style: Theme.of(context).textTheme.titleMedium)),
+          FilledButton(onPressed: c.toggleEstimate, child: const Text('Close')),
+        ]),
+        ..._estimateDetails(context),
+      ]);
 
   List<Widget> _cards(EngineService engines,
       {bool notices = true, bool starting = true}) {
@@ -337,7 +459,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (c.scoring != null && !_portrait) _scoringCard(),
       if (c.scoring == null && c.overlay == BoardOverlay.hints) _hintsCard(),
       if (c.scoring == null && c.overlay == BoardOverlay.rating) _ratingCard(),
-      if (c.scoring == null && c.overlay == BoardOverlay.estimate) _estimateCard(),
+      if (c.scoring == null && c.overlay == BoardOverlay.estimate && !_portrait)
+        _estimateCard(),
     ];
     return [if (cards.isNotEmpty) const SizedBox(height: 8), ...cards];
   }
@@ -402,6 +525,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   String _status() {
     final g = c.game;
     if (g.result != null) return c.resultText();
+    if (c.isCounting) return 'Counting…';
     if (c.scoring != null) return 'Counting – tap stones to mark them dead/alive';
     if (c.botThinking) return '${c.level.label} is thinking…';
     if (c.botWaiting) return 'Bot to play – press "Bot move" to continue';
@@ -440,14 +564,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           selected: c.overlay == BoardOverlay.rating),
       _btn(Icons.pie_chart_outline, 'Score estimate', !scoring ? c.toggleEstimate : null,
           selected: c.overlay == BoardOverlay.estimate),
-      _btn(
-          Icons.calculate_outlined,
-          'Count',
-          scoring && _portrait
-              ? _showScore // reopens the score while counting
-              : !scoring && c.game.result == null
-                  ? c.startScoring
-                  : null),
+      _btn(Icons.calculate_outlined, 'Count', !scoring && c.game.result == null ? c.startScoring : null),
     ];
     return Wrap(spacing: 6, runSpacing: 6, children: btns);
   }
@@ -602,27 +719,40 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  Widget _estimateCard() {
-    final a = c.estimate;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: a == null
-            ? const Column(children: [Text('Estimating score…'), SizedBox(height: 8), LinearProgressIndicator()])
-            : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _estimateCard() => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text('Score estimate', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 6),
-                Text(leadText(a.scoreLead),
-                    style: Theme.of(context).textTheme.headlineMedium),
-                Text('Black win chance ${(a.winrate * 100).toStringAsFixed(1)}% '
-                    '(komi ${c.game.setup.komi} included)'),
-                const SizedBox(height: 4),
-                Text('Squares show who is likely to own each point; '
-                    'crossed stones are probably dead.',
-                    style: Theme.of(context).textTheme.bodySmall),
+                ..._estimateDetails(context),
               ]),
-      ),
-    );
+        ),
+      );
+
+  List<Widget> _estimateDetails(BuildContext context) {
+    final a = c.estimate;
+    if (a == null) {
+      return [
+        if (c.overlay == BoardOverlay.estimate) ...[
+          const Text('Estimating score…'),
+          const SizedBox(height: 8),
+          const LinearProgressIndicator(),
+        ] else
+          const Text('No estimate available.'),
+      ];
+    }
+    return [
+      Text(leadText(a.scoreLead), style: Theme.of(context).textTheme.headlineMedium),
+      Text('Black win chance ${(a.winrate * 100).toStringAsFixed(1)}% '
+          '(komi ${c.game.setup.komi} included)'),
+      const SizedBox(height: 4),
+      Text('Squares show who is likely to own each point; '
+          'faded stones are probably dead.',
+          style: Theme.of(context).textTheme.bodySmall),
+    ];
   }
 
   Widget _scoringCard() {
@@ -636,11 +766,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               style: Theme.of(context).textTheme.titleMedium),
           ..._scoreDetails(context),
           const SizedBox(height: 8),
-          Text('Tap a stone to toggle it dead/alive.', style: Theme.of(context).textTheme.bodySmall),
+          if (!c.isCounting)
+            Text('Tap a stone to toggle it dead/alive.',
+                style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 8),
           if (!s.accepted)
             Wrap(spacing: 8, runSpacing: 6, children: [
-              FilledButton(onPressed: c.acceptScore, child: const Text('Accept result')),
+              if (!c.isCounting)
+                FilledButton(onPressed: c.acceptScore, child: const Text('Accept result')),
               OutlinedButton(onPressed: c.resumePlay, child: const Text('Resume play')),
             ])
           else
@@ -668,9 +801,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           Text('$b', textAlign: TextAlign.right),
           Text('$w', textAlign: TextAlign.right),
         ]);
+    if (c.isCounting) {
+      return const [
+        Padding(padding: EdgeInsets.symmetric(vertical: 6), child: LinearProgressIndicator()),
+        Text('Counting…'),
+      ];
+    }
     return [
-      if (c.busy) const Padding(
-          padding: EdgeInsets.symmetric(vertical: 6), child: LinearProgressIndicator()),
       const SizedBox(height: 8),
       Table(columnWidths: const {0: FlexColumnWidth(2)}, children: [
         row('', 'Black', 'White'),
@@ -707,82 +844,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ),
       ],
     ];
-  }
-
-  void _watchScoring() {
-    if (!c.isScoring) {
-      _scoreAutoShown = false;
-      return;
-    }
-    if (_portrait && !c.busy && !_scoreAutoShown && !_scoreDialogOpen &&
-        !c.scoring!.accepted) {
-      _scoreAutoShown = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && c.isScoring) _showScore();
-      });
-    }
-  }
-
-  /// The counting result as a dialog over the board (portrait layout).
-  Future<void> _showScore() async {
-    if (_scoreDialogOpen || !c.isScoring) return;
-    _scoreDialogOpen = true;
-    final action = await showDialog<String>(
-      context: context,
-      builder: (ctx) => ListenableBuilder(
-        listenable: c,
-        builder: (ctx, _) {
-          final s = c.scoring;
-          if (s == null) return const SizedBox.shrink();
-          void close([String? a]) => Navigator.pop(ctx, a);
-          return AlertDialog(
-            title: Text(s.accepted
-                ? 'Result'
-                : 'Counting (${s.result.rules.displayName} rules)'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ..._scoreDetails(ctx),
-                  if (!s.accepted) ...[
-                    const SizedBox(height: 8),
-                    Text('Wrong dead stones? Tap "Mark stones", tap the stones on '
-                        'the board, then "Count" to see the score again.',
-                        style: Theme.of(ctx).textTheme.bodySmall),
-                  ],
-                ],
-              ),
-            ),
-            actions: s.accepted
-                ? [
-                    TextButton(onPressed: close, child: const Text('Close')),
-                    OutlinedButton(
-                        onPressed: () => close('menu'), child: const Text('Back to menu')),
-                    FilledButton(
-                        onPressed: () => close('review'), child: const Text('Review game')),
-                  ]
-                : [
-                    TextButton(onPressed: close, child: const Text('Mark stones')),
-                    OutlinedButton(
-                        onPressed: () => close('resume'), child: const Text('Resume play')),
-                    FilledButton(
-                        onPressed: c.busy ? null : c.acceptScore, child: const Text('Accept')),
-                  ],
-          );
-        },
-      ),
-    );
-    _scoreDialogOpen = false;
-    if (!mounted) return;
-    switch (action) {
-      case 'resume':
-        c.resumePlay();
-      case 'review':
-        _review();
-      case 'menu':
-        Navigator.of(context).pop();
-    }
   }
 
   String _scoreLine(ScoreResult r) {
