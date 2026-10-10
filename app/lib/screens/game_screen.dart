@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' show max;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -176,16 +177,38 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   ),
                 ]);
               }
-              return ListView(
-                padding: const EdgeInsets.all(8),
+              // Portrait: the board shrinks just enough for the players, board,
+              // buttons and move slider to fit the screen exactly, so it does
+              // not slide when touched. Cards (hints, counting...) and engine
+              // notices follow below and scroll into view.
+              const pad = 8.0;
+              final list = ListView(
+                // Only scrolls when a card makes it taller than the screen.
+                primary: false,
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.all(pad),
                 children: [
-                  _playersBar(),
-                  const SizedBox(height: 6),
-                  board,
-                  const SizedBox(height: 6),
-                  ..._panel(engines, includePlayers: false),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxHeight: (box.maxHeight - 2 * pad).floorToDouble()),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      _playersBar(),
+                      const SizedBox(height: 6),
+                      Flexible(child: board),
+                      ..._controls(),
+                    ]),
+                  ),
+                  ..._cards(engines, starting: false),
                 ],
               );
+              // Engine start-up shows as a thin bar over the top edge, so it
+              // takes no room from the layout.
+              return Stack(children: [
+                list,
+                if (engines.status == EngineStatus.starting)
+                  const Positioned(
+                      top: 0, left: 0, right: 0, child: LinearProgressIndicator(minHeight: 3)),
+              ]);
             }),
           ),
         );
@@ -278,23 +301,37 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   // ---------------------------------------------------------------------------
   // Side panel
 
-  List<Widget> _panel(EngineService engines, {bool includePlayers = true}) {
-    return [
-      if (includePlayers) _playersBar(),
-      if (engines.status == EngineStatus.starting)
-        const _Notice(icon: Icons.hourglass_top, text: 'Starting KataGo…'),
-      if (engines.status == EngineStatus.error && engines.error != null)
-        _Notice(icon: Icons.error_outline, text: engines.error!, error: true),
-      const SizedBox(height: 8),
-      _actions(),
-      const SizedBox(height: 8),
-      _navigator(),
-      const SizedBox(height: 8),
+  List<Widget> _panel(EngineService engines) => [
+        _playersBar(),
+        ..._notices(engines),
+        ..._controls(),
+        ..._cards(engines, notices: false),
+      ];
+
+  List<Widget> _notices(EngineService engines, {bool starting = true}) => [
+        if (starting && engines.status == EngineStatus.starting)
+          const _Notice(icon: Icons.hourglass_top, text: 'Starting KataGo…'),
+        if (engines.status == EngineStatus.error && engines.error != null)
+          _Notice(icon: Icons.error_outline, text: engines.error!, error: true),
+      ];
+
+  List<Widget> _controls() => [
+        const SizedBox(height: 8),
+        _actions(),
+        const SizedBox(height: 2),
+        _navigator(),
+      ];
+
+  List<Widget> _cards(EngineService engines,
+      {bool notices = true, bool starting = true}) {
+    final cards = [
+      if (notices) ..._notices(engines, starting: starting),
       if (c.scoring != null) _scoringCard(),
       if (c.scoring == null && c.overlay == BoardOverlay.hints) _hintsCard(),
       if (c.scoring == null && c.overlay == BoardOverlay.rating) _ratingCard(),
       if (c.scoring == null && c.overlay == BoardOverlay.estimate) _estimateCard(),
     ];
+    return [if (cards.isNotEmpty) const SizedBox(height: 8), ...cards];
   }
 
   Widget _playersBar() {
@@ -347,7 +384,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return Column(children: [
       Row(children: [player(Stone.black), const SizedBox(width: 8), player(Stone.white)]),
       const SizedBox(height: 6),
-      Text(_status(), style: Theme.of(context).textTheme.titleSmall),
+      Text(_status(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleSmall),
     ]);
   }
 
@@ -414,8 +454,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final g = c.game;
     final total = g.lineLength;
     return Card(
+      // Snug under the buttons, leaving more height for the board.
+      margin: const EdgeInsets.fromLTRB(4, 0, 4, 4),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
         child: Column(children: [
           Row(children: [
             IconButton(
@@ -439,17 +481,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 onPressed: g.canRedo ? () => c.goTo(total) : null,
                 icon: const Icon(Icons.last_page)),
           ]),
-          if (total > 0)
-            Slider(
-              value: g.moveNumber.toDouble(),
-              max: total.toDouble(),
-              divisions: total,
-              label: '${g.moveNumber}',
-              onChanged: (v) => c.goTo(v.round()),
-            ),
-          if (g.canRedo)
-            Text('Playing a new move here discards the later moves',
+          // Always the same height, so the board never resizes during play.
+          Slider(
+            value: g.moveNumber.toDouble(),
+            max: max(total, 1).toDouble(),
+            divisions: max(total, 1),
+            label: '${g.moveNumber}',
+            onChanged: total > 0 ? (v) => c.goTo(v.round()) : null,
+          ),
+          Visibility.maintain(
+            visible: g.canRedo,
+            child: Text('Playing a new move here discards the later moves',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall),
+          ),
         ]),
       ),
     );

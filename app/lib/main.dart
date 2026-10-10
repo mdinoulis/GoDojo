@@ -52,6 +52,9 @@ class _GoDojoAppState extends ConsumerState<GoDojoApp> {
     return MaterialApp(
       title: 'GoDojo',
       debugShowCheckedModeBanner: false,
+      // No Android "stretch" when dragging past the end of a list: on e-ink
+      // it just makes the screen wobble.
+      scrollBehavior: const MaterialScrollBehavior().copyWith(overscroll: false),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: seed),
         useMaterial3: true,
