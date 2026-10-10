@@ -77,7 +77,11 @@ class GameController extends ChangeNotifier {
   bool get isScoring => scoring != null;
 
   /// Counting has started but the engine is still working out the result.
-  bool get isCounting => isScoring && busy;
+  /// (Its own flag: [busy] is shared with hints / estimates, which may
+  /// still finish while counting is running.)
+  bool get isCounting => isScoring && _counting;
+  bool _counting = false;
+  int _countToken = 0;
   bool get canPlay => !game.isOver && !botThinking && isHumanTurn && !isScoring;
 
   /// It is the bot's turn but it is waiting (e.g. after navigating back).
@@ -389,6 +393,8 @@ class GameController extends ChangeNotifier {
     _cancelBot();
     overlay = BoardOverlay.none;
     busy = true;
+    _counting = true;
+    final token = ++_countToken;
     // Provisional count without engine help so the UI can show something.
     scoring = ScoringState(
         null,
@@ -425,6 +431,7 @@ class GameController extends ChangeNotifier {
       if (gen == _generation) _say('Counting without engine help: $e');
     } finally {
       busy = false;
+      if (token == _countToken) _counting = false;
       notifyListeners();
     }
   }
