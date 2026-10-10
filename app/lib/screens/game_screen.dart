@@ -54,6 +54,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   StreamSubscription<String>? _msgSub;
   String? _savedJson;
 
+  // Portrait has no room for the counting card, so the score is shown in a
+  // dialog: opened once the count is ready, reopened with the Count button.
+  bool _portrait = true;
+  bool _scoreDialogOpen = false;
+  bool _scoreAutoShown = false;
+
   /// Whether the saved unfinished game (for this mode) is this one - a new
   /// game only replaces it once a move has been played.
   late bool _ownsSaved = widget.resume != null;
@@ -71,6 +77,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       resume: widget.resume,
     );
     c.addListener(_persist);
+    c.addListener(_watchScoring);
     final sounds = ref.read(soundServiceProvider);
     sounds.warmUp(ref.read(settingsProvider).stoneSound);
     c.onStonePlayed = (move, captured) {
@@ -160,6 +167,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           body: SafeArea(
             child: LayoutBuilder(builder: (context, box) {
               final wide = box.maxWidth > box.maxHeight * 1.15;
+              _portrait = !wide;
               if (wide) {
                 return Row(children: [
                   Expanded(
@@ -326,7 +334,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       {bool notices = true, bool starting = true}) {
     final cards = [
       if (notices) ..._notices(engines, starting: starting),
-      if (c.scoring != null) _scoringCard(),
+      if (c.scoring != null && !_portrait) _scoringCard(),
       if (c.scoring == null && c.overlay == BoardOverlay.hints) _hintsCard(),
       if (c.scoring == null && c.overlay == BoardOverlay.rating) _ratingCard(),
       if (c.scoring == null && c.overlay == BoardOverlay.estimate) _estimateCard(),
@@ -432,7 +440,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           selected: c.overlay == BoardOverlay.rating),
       _btn(Icons.pie_chart_outline, 'Score estimate', !scoring ? c.toggleEstimate : null,
           selected: c.overlay == BoardOverlay.estimate),
-      _btn(Icons.calculate_outlined, 'Count', !scoring && c.game.result == null ? c.startScoring : null),
+      _btn(
+          Icons.calculate_outlined,
+          'Count',
+          scoring && _portrait
+              ? _showScore // reopens the score while counting
+              : !scoring && c.game.result == null
+                  ? c.startScoring
+                  : null),
     ];
     return Wrap(spacing: 6, runSpacing: 6, children: btns);
   }
@@ -613,56 +628,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Widget _scoringCard() {
     final s = c.scoring!;
     final r = s.result;
-    final territory = r.rules.scoring == ScoringType.territory;
-    String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
-    TableRow row(String label, Object b, Object w) => TableRow(children: [
-          Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Text(label)),
-          Text('$b', textAlign: TextAlign.right),
-          Text('$w', textAlign: TextAlign.right),
-        ]);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Counting (${r.rules.displayName} rules)',
               style: Theme.of(context).textTheme.titleMedium),
-          if (c.busy) const Padding(
-              padding: EdgeInsets.symmetric(vertical: 6), child: LinearProgressIndicator()),
-          const SizedBox(height: 8),
-          Table(columnWidths: const {0: FlexColumnWidth(2)}, children: [
-            row('', 'Black', 'White'),
-            if (territory) ...[
-              row('Territory', r.blackTerritory, r.whiteTerritory),
-              row('Prisoners', r.blackPrisoners, r.whitePrisoners),
-            ] else ...[
-              row('Stones', r.blackStones, r.whiteStones),
-              row('Territory', r.blackTerritory, r.whiteTerritory),
-              if (r.handicapBonus > 0) row('Handicap comp.', '', r.handicapBonus),
-            ],
-            row('Komi', '', fmt(r.komi)),
-            row('Total', fmt(r.blackScore), fmt(r.whiteScore)),
-          ]),
-          const SizedBox(height: 8),
-          Text(_scoreLine(r), style: Theme.of(context).textTheme.titleMedium),
-          if (r.sekiStones.isNotEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text('◆ Seki detected – points in seki are not counted as territory.'),
-            ),
-          if (!s.isFinished && !s.accepted) ...[
-            const SizedBox(height: 8),
-            _Notice(
-              icon: Icons.warning_amber,
-              error: true,
-              text: [
-                'The game is not finished.',
-                if (r.unsettled.isNotEmpty) 'Areas marked with red dots are still open.',
-                if (s.allGaps.isNotEmpty)
-                  '${s.allGaps.length} point(s) marked "?" still need to be played '
-                      '(open borders, dame or protective moves).',
-              ].join(' '),
-            ),
-          ],
+          ..._scoreDetails(context),
           const SizedBox(height: 8),
           Text('Tap a stone to toggle it dead/alive.', style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 8),
@@ -683,6 +655,134 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ]),
       ),
     );
+  }
+
+  /// Score table, result and warnings - shared by the card and the dialog.
+  List<Widget> _scoreDetails(BuildContext context) {
+    final s = c.scoring!;
+    final r = s.result;
+    final territory = r.rules.scoring == ScoringType.territory;
+    String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+    TableRow row(String label, Object b, Object w) => TableRow(children: [
+          Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Text(label)),
+          Text('$b', textAlign: TextAlign.right),
+          Text('$w', textAlign: TextAlign.right),
+        ]);
+    return [
+      if (c.busy) const Padding(
+          padding: EdgeInsets.symmetric(vertical: 6), child: LinearProgressIndicator()),
+      const SizedBox(height: 8),
+      Table(columnWidths: const {0: FlexColumnWidth(2)}, children: [
+        row('', 'Black', 'White'),
+        if (territory) ...[
+          row('Territory', r.blackTerritory, r.whiteTerritory),
+          row('Prisoners', r.blackPrisoners, r.whitePrisoners),
+        ] else ...[
+          row('Stones', r.blackStones, r.whiteStones),
+          row('Territory', r.blackTerritory, r.whiteTerritory),
+          if (r.handicapBonus > 0) row('Handicap comp.', '', r.handicapBonus),
+        ],
+        row('Komi', '', fmt(r.komi)),
+        row('Total', fmt(r.blackScore), fmt(r.whiteScore)),
+      ]),
+      const SizedBox(height: 8),
+      Text(_scoreLine(r), style: Theme.of(context).textTheme.titleMedium),
+      if (r.sekiStones.isNotEmpty)
+        const Padding(
+          padding: EdgeInsets.only(top: 4),
+          child: Text('◆ Seki detected – points in seki are not counted as territory.'),
+        ),
+      if (!s.isFinished && !s.accepted) ...[
+        const SizedBox(height: 8),
+        _Notice(
+          icon: Icons.warning_amber,
+          error: true,
+          text: [
+            'The game is not finished.',
+            if (r.unsettled.isNotEmpty) 'Areas marked with red dots are still open.',
+            if (s.allGaps.isNotEmpty)
+              '${s.allGaps.length} point(s) marked "?" still need to be played '
+                  '(open borders, dame or protective moves).',
+          ].join(' '),
+        ),
+      ],
+    ];
+  }
+
+  void _watchScoring() {
+    if (!c.isScoring) {
+      _scoreAutoShown = false;
+      return;
+    }
+    if (_portrait && !c.busy && !_scoreAutoShown && !_scoreDialogOpen &&
+        !c.scoring!.accepted) {
+      _scoreAutoShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && c.isScoring) _showScore();
+      });
+    }
+  }
+
+  /// The counting result as a dialog over the board (portrait layout).
+  Future<void> _showScore() async {
+    if (_scoreDialogOpen || !c.isScoring) return;
+    _scoreDialogOpen = true;
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) => ListenableBuilder(
+        listenable: c,
+        builder: (ctx, _) {
+          final s = c.scoring;
+          if (s == null) return const SizedBox.shrink();
+          void close([String? a]) => Navigator.pop(ctx, a);
+          return AlertDialog(
+            title: Text(s.accepted
+                ? 'Result'
+                : 'Counting (${s.result.rules.displayName} rules)'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ..._scoreDetails(ctx),
+                  if (!s.accepted) ...[
+                    const SizedBox(height: 8),
+                    Text('Wrong dead stones? Tap "Mark stones", tap the stones on '
+                        'the board, then "Count" to see the score again.',
+                        style: Theme.of(ctx).textTheme.bodySmall),
+                  ],
+                ],
+              ),
+            ),
+            actions: s.accepted
+                ? [
+                    TextButton(onPressed: close, child: const Text('Close')),
+                    OutlinedButton(
+                        onPressed: () => close('menu'), child: const Text('Back to menu')),
+                    FilledButton(
+                        onPressed: () => close('review'), child: const Text('Review game')),
+                  ]
+                : [
+                    TextButton(onPressed: close, child: const Text('Mark stones')),
+                    OutlinedButton(
+                        onPressed: () => close('resume'), child: const Text('Resume play')),
+                    FilledButton(
+                        onPressed: c.busy ? null : c.acceptScore, child: const Text('Accept')),
+                  ],
+          );
+        },
+      ),
+    );
+    _scoreDialogOpen = false;
+    if (!mounted) return;
+    switch (action) {
+      case 'resume':
+        c.resumePlay();
+      case 'review':
+        _review();
+      case 'menu':
+        Navigator.of(context).pop();
+    }
   }
 
   String _scoreLine(ScoreResult r) {
